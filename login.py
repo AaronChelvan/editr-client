@@ -1,10 +1,10 @@
 from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QAction, qApp, QLabel, QLineEdit
+from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QAction, qApp, QLabel, QLineEdit, QHBoxLayout, QVBoxLayout, QGridLayout, QStackedLayout
 from PyQt5.QtGui import QIcon, QPalette, QColor
 from PyQt5.QtCore import Qt
 import sys
 
-
+##need to change to layout stuff
 def app():
     mainApp = QApplication(sys.argv)
     win = QMainWindow()
@@ -26,7 +26,7 @@ def app():
     palette.setColor(QPalette.BrightText, Qt.red)
     mainApp.setPalette(palette)
 
-    label = QtWidgets.QLabel(win)
+    label = QLabel(win)
     label.setText("Username:")
     label.move(50,50)
 
@@ -49,6 +49,27 @@ def app():
     exitButton.move(265,150)
     exitButton.clicked.connect(mainApp.quit)
 
+    grid = QGridLayout(win)
+    grid.setSpacing(10)
+    grid.addWidget(label,5,5)
+    win.setLayout(grid)
+    #hbox1 = QHBoxLayout()
+    #hbox1.addStretch(500)
+    #hbox1.addWidget(label)
+    #hbox1.addWidget(lineEditUser)
+
+    #vbox1 = QVBoxLayout()
+    #vbox1.addStretch(1)
+    #vbox1.addLayout(hbox1)
+
+    #win.setLayout(vbox1)
+
+    #hbox2 = QHBoxLayout()
+    #hbox2.addStretch(1)
+    #hbox2.addWidget(label2)
+    #hbox2.addWidget(lineEditPass)
+
+
     exitAct = QAction(QIcon('exit.png'), '&Exit', win)
     exitAct.setShortcut('Ctrl+Q')
     exitAct.setStatusTip('Exit application')
@@ -61,9 +82,15 @@ def app():
     win.show()
     sys.exit(mainApp.exec_())
 
+
 #Will make open logged in window
 def loginClick():
+    #mainApp = QApplication(sys.argv)
+    extra = QMainWindow()
+    extra.setGeometry(400,400,700,500)
+    extra.show()
     print("Login")
 
 
-app()
+if __name__ == '__main__':
+    app()
