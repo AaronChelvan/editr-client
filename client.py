@@ -23,29 +23,62 @@ class Textbox(QTextEdit):
 		cursorPosition = self.textCursor().selectionStart()
 
 		# The number of characters highlighted (0 == no characters highlighted)
-		numChars = self.textCursor().selectionEnd() - self.textCursor().selectionStart()
+		numHighlightedChars = self.textCursor().selectionEnd() - self.textCursor().selectionStart()
 
+		# User pressed backspace
 		if event.key() == Qt.Key_Backspace:
-			if numChars > 0:
-				print("Deleted %d chars starting at offset %d" % (numChars, cursorPosition))
+			if numHighlightedChars > 0:
+				sendUpdate("remove", cursorPosition, numHighlightedChars)
 			elif self.textCursor().atStart() == False: # Is there a character to the left of the cursor?
-				print("Deleted char at offset %d" % (cursorPosition-1))
+				sendUpdate("remove", cursorPosition-1, 1)
 			else:
 				print("Nothing to delete")
+
+		# User pressed delete
 		elif event.key() == Qt.Key_Delete:
-			if numChars > 0:
-				print("Deleted %d chars starting at offset %d" % (numChars, cursorPosition))
+			if numHighlightedChars > 0:
+				sendUpdate("remove", cursorPosition, numHighlightedChars)
 			elif self.textCursor().atEnd() == False: # Is there a character to the right of the cursor?
-				print("Deleted char at offset %d" % cursorPosition)
+				sendUpdate("remove", cursorPosition, 1)
 			else:
 				print("Nothing to delete")
-		elif event.text() in string.printable and event.text() != "": # if the character is a printable string
-			if numChars > 0:
-				print("Deleted %d chars starting at offset %d" % (numChars, cursorPosition))
-			print("Inserted " + repr(event.text()) + " at offset %d" % cursorPosition)
+
+		# User pressed a printable character
+		elif event.text() in string.printable and event.text() != "":
+			# If one or more characters are highlighted, they will get overwritten
+			if numHighlightedChars > 0:
+				sendUpdate("remove", cursorPosition, numHighlightedChars)
+
+			# Write the new character
+			sendUpdate("write", cursorPosition, event.text())
 		
 		# Process the key press in the textbox
 		super(Textbox, self).keyPressEvent(event)
+
+# When the contents of the textbox is edited, generate a JSON string describing the edit
+# and send it to the server
+def sendUpdate(*args):
+	message = {}
+	message["operation"] = args[0]
+	message["data"] = {}
+	if args[0] == "open":
+		# TODO
+		pass
+	elif args[0] == "write":
+		message["data"]["offset"] = args[1]
+		message["data"]["bytes"] = args[2]
+	elif args[0] == "read":
+		# TODO
+		pass
+	elif args[0] == "remove":
+		message["data"]["offset"] = args[1]
+		message["data"]["remove_length"] = args[2]
+	else:
+		print("Unknown operation")
+		exit()
+	print(message)
+
+	# TODO convert "message" to a JSON string and send it to the server
 
 
 app = QApplication([])
