@@ -50,8 +50,21 @@ class Textbox(QTextEdit):
 				sendUpdate("remove", cursorPosition, numHighlightedChars)
 
 			# Write the new character
-			sendUpdate("write", cursorPosition, event.text())
+			if event.text() == "\r": # \r should be a newline char
+				char = "\n"
+			else:
+				char = event.text()
+			sendUpdate("write", cursorPosition, char)
 		
+		# User pressed cut (Ctrl + X)
+		elif event.key() == Qt.Key_X and event.modifiers() == Qt.ControlModifier:
+			if numHighlightedChars > 0:
+				sendUpdate("remove", cursorPosition, numHighlightedChars)
+
+		# User pressed paste (Ctrl + V)
+		elif event.key() == Qt.Key_V and event.modifiers() == Qt.ControlModifier:
+			sendUpdate("write", cursorPosition, QApplication.clipboard().text())
+
 		# Process the key press in the textbox
 		super(Textbox, self).keyPressEvent(event)
 
@@ -78,7 +91,10 @@ def sendUpdate(*args):
 		exit()
 	print(message)
 
-	# TODO convert "message" to a JSON string and send it to the server
+	# TODO 
+	# convert "message" to a JSON string 
+	# convert the JSON string to byte form
+	# and send it to the server
 
 
 app = QApplication([])
