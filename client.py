@@ -72,20 +72,17 @@ class Textbox(QTextEdit):
 # and send it to the server
 def sendUpdate(*args):
 	message = {}
-	message["operation"] = args[0]
-	message["data"] = {}
 	if args[0] == "open":
 		# TODO
 		pass
 	elif args[0] == "write":
-		message["data"]["offset"] = args[1]
-		message["data"]["bytes"] = args[2]
+		data = list(bytes(args[2], "utf-8"))
+		message["WriteReq"] = {"offset": args[1], "data": data}
 	elif args[0] == "read":
 		# TODO
 		pass
 	elif args[0] == "remove":
-		message["data"]["offset"] = args[1]
-		message["data"]["remove_length"] = args[2]
+		message["RemoveReq"] = {"offset": args[1], "len": args[2]}
 	else:
 		print("Unknown operation")
 		exit()
