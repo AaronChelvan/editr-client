@@ -1,15 +1,16 @@
 from PyQt5 import QtWidgets, QtCore, QtGui
-from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QAction, qApp, QLabel, QLineEdit, QHBoxLayout, QVBoxLayout, QGridLayout, QStackedLayout
+from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QAction, qApp, QLabel, QLineEdit, QHBoxLayout, QVBoxLayout, QGridLayout, QStackedLayout, QWidget, QToolBox
 from PyQt5.QtGui import QIcon, QPalette, QColor
 from PyQt5.QtCore import Qt
 import sys
+import client
 
 
 class Login(QtWidgets.QMainWindow):
 
     switch_window = QtCore.pyqtSignal()
 
-    def __init__(self,app):
+    def __init__(self, app):
         QtWidgets.QMainWindow.__init__(self)
 
         self.setGeometry(400,400,700,500)
@@ -50,14 +51,14 @@ class Login(QtWidgets.QMainWindow):
         fileMenu = menubar.addMenu('&File')
         fileMenu.addAction(exitAct)
 
-        #self.grid = QGridLayout()
-        #widget = QWidget()
-        #widget.
+        #grid = QGridLayout()
+        #widget =
         #testButton = QPushButton('Test')
-        #self.grid.setSpacing(10)
-        #self.grid.addWidget(testButton,100,100)
-        #self.setLayout(self.grid)
-        #hbox1 = QHBoxLayout(self)
+        #grid.setSpacing(10)
+        #grid.addWidget(testButton,100,100)
+        #widget.setLayout(grid)
+        #self.setCentralWidget(widget)
+        #hbox1 = QHBoxLayout()
         #hbox1.addStretch(1)
         #hbox1.addWidget(testButton)
         #hbox1.addWidget(lineEditUser)
@@ -67,12 +68,14 @@ class Login(QtWidgets.QMainWindow):
         #vbox1.addStretch(1)
         #vbox1.addLayout(hbox1)
 
-        #self.setLayout(hbox1)
+        #widget.setLayout(hbox1)
 
         #hbox2 = QHBoxLayout()
         #hbox2.addStretch(1)
         #hbox2.addWidget(label2)
         #hbox2.addWidget(lineEditPass)
+
+        #self.setCentralWidget()
 
     def login(self):
 
@@ -80,9 +83,9 @@ class Login(QtWidgets.QMainWindow):
 
 
 
-class MainWindow(QtWidgets.QMainWindow):
+class Menu(QtWidgets.QMainWindow):
 
-    switch_window = QtCore.pyqtSignal(str)
+    switch_window = QtCore.pyqtSignal()
 
     def __init__(self,app):
         QtWidgets.QMainWindow.__init__(self)
@@ -112,7 +115,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         connectButton = QPushButton('Connect', self)
         connectButton.move(150, 150)
-        #connectButton.clicked.connect(self.connect)
+        connectButton.clicked.connect(self.text)
 
         exitAct = QAction(QIcon('exit.png'), '&Exit', self)
         exitAct.setShortcut('Ctrl+Q')
@@ -123,9 +126,9 @@ class MainWindow(QtWidgets.QMainWindow):
         fileMenu = menubar.addMenu('&File')
         fileMenu.addAction(exitAct)
 
-
-        def connect(self):
-            self.switch_window.emit()
+    def text(self):
+        print("main switch")
+        self.switch_window.emit()
 
 
 
@@ -141,9 +144,17 @@ class Controller:
         self.login.show()
 
     def show_main(self):
-        self.window = MainWindow(self.app)
+        self.window = Menu(self.app)
+        self.window.switch_window.connect(self.show_text)
         self.login.close()
         self.window.show()
+
+    def show_text(self):
+        print("before client ")
+        self.text = client.MainWindow()
+        self.window.close()
+        self.text.show()
+        self.app.exec_()
 
 
 
@@ -165,6 +176,7 @@ def palette():
 def main():
     app = QtWidgets.QApplication(sys.argv)
     app.setStyle("Fusion")
+    app.setApplicationName("Editr")
     pal = palette()
     app.setPalette(pal)
     controller = Controller(app)

@@ -60,9 +60,10 @@ def sendUpdate(*args):
 	# convert "message" to a JSON string and send it to the server
 
 
-app = QApplication([])
-app.setApplicationName("Editr Client")
+#app = QApplication([])
+#app.setApplicationName("Editr Client")
+#def test():
 
-window = MainWindow()
-window.show()
-app.exec_()
+#window = MainWindow()
+#window.show()
+#app.exec_()
