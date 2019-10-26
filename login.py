@@ -2,7 +2,7 @@ from PyQt5 import QtWidgets, QtCore, QtGui
 from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QAction, qApp, QLabel, QLineEdit, QHBoxLayout, QVBoxLayout, QGridLayout, QStackedLayout, QWidget, QToolBox
 from PyQt5.QtGui import QIcon, QPalette, QColor
 from PyQt5.QtCore import Qt
-import sys
+import sys, socket
 import client
 
 # The menu window which contains:
@@ -10,9 +10,7 @@ import client
 # - A list of recent connections
 
 class Menu(QtWidgets.QMainWindow):
-    switch_window = QtCore.pyqtSignal()
-
-    def __init__(self,app):
+    def __init__(self, app):
         QMainWindow.__init__(self)
         self.setWindowTitle('Editr')
         self.setGeometry(400,400,600,500)
@@ -54,7 +52,24 @@ class Menu(QtWidgets.QMainWindow):
         port = self.lineEditPort.text()
         print("ip = %s, port = %s"% (ip, port))
 
-        self.switch_window.emit()
+        # Check if the port number is valid
+        if not port.isdigit():
+            print("Invalid port number") # TODO make this an error message that appears in the UI
+            return
+        
+        # Attempt to connect to the server
+        clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            clientSocket.connect((ip, int(port)))
+        except socket.error:
+            print("Could not connect")
+            return
+        
+        # If connection successful
+        self.close() # close this window
+        window = client.MainWindow(clientSocket)
+        window.show() # open the text editor window
+        self.app.exec_()
 
 class Controller:
     def __init__(self,app):
@@ -69,7 +84,6 @@ class Controller:
     def show_text(self):
         self.window = client.MainWindow()
         self.window.show()
-        self.app.exec_()
 
 # The colour scheme
 def palette():
@@ -90,8 +104,8 @@ def main():
     app.setApplicationName("Editr")
     pal = palette()
     app.setPalette(pal)
-    controller = Controller(app)
-    controller.show_menu()
+    window = Menu(app)
+    window.show()
     sys.exit(app.exec_())
 
 if __name__ == '__main__':
