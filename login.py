@@ -1,6 +1,6 @@
 from PyQt5 import QtWidgets, QtCore, QtGui
 from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QAction, qApp, QLabel, QLineEdit, QHBoxLayout, QVBoxLayout, QGridLayout, QStackedLayout, QWidget, QToolBox
-from PyQt5.QtGui import QIcon, QPalette, QColor
+from PyQt5.QtGui import QIcon, QPalette, QColor, QPixmap
 from PyQt5.QtCore import Qt
 import sys
 import client
@@ -87,7 +87,7 @@ class Menu(QtWidgets.QMainWindow):
 
     switch_window = QtCore.pyqtSignal()
 
-    def __init__(self,app):
+    def __init__(self, app):
         QtWidgets.QMainWindow.__init__(self)
         self.setWindowTitle('Editr')
         self.setGeometry(400,400,600,500)
@@ -99,6 +99,16 @@ class Menu(QtWidgets.QMainWindow):
         label2 = QtWidgets.QLabel(self)
         label2.setText("Port:")
         label2.move(50, 100)
+
+        labelP = QLabel(self)
+        labelP.setBaseSize(2000,2000)
+        pixmap = QPixmap('crab.png').scaled(50,50)
+        labelP.setPixmap(pixmap)
+        labelP.move(200,200)
+        labelP.hasScaledContents()
+        #pixmap.scaled(20050,2550)
+        labelP.raise_()
+
 
         recents = QtWidgets.QLabel(self)
         recents.setText("Put recent connections here")
@@ -117,19 +127,57 @@ class Menu(QtWidgets.QMainWindow):
         connectButton.move(150, 150)
         connectButton.clicked.connect(self.text)
 
+        self.menu(app)
+
+
+    def text(self):
+        print("main switch")
+        self.switch_window.emit()
+
+    def menu(self, app):
         exitAct = QAction(QIcon('exit.png'), '&Exit', self)
         exitAct.setShortcut('Ctrl+Q')
         exitAct.setStatusTip('Exit application')
         exitAct.triggered.connect(app.quit)
 
         menubar = self.menuBar()
-        fileMenu = menubar.addMenu('&File')
-        fileMenu.addAction(exitAct)
+        filemenu = menubar.addMenu('&File')
+        filemenu.addAction(exitAct)
 
-    def text(self):
-        print("main switch")
-        self.switch_window.emit()
+        ##Will be used to add new connections
+        menubar.addMenu('&Add')
 
+        menubar.addMenu('&Settings')
+
+        helpmenu = menubar.addMenu('&Help')
+        aboutAct = QAction('&About',self)
+
+        feedbackAct = QAction('&Feedback', self)
+        helpAct = QAction('&Help',self)
+
+        helpmenu.addAction(aboutAct)
+        helpmenu.addAction(feedbackAct)
+        helpmenu.addAction(helpAct)
+
+
+class Savededitr:
+
+    def __init__(self, name, ip, port):
+        self.name = name
+        self.ip = ip
+        self.port = port
+
+    def displayWindows(self):
+        label = QLabel(self)
+        label.setText(self.name)
+        label.move(50, 50) ##Needs relative location
+
+        pixmap = QPixmap('crab.png')
+        label.setPixmap(pixmap)
+
+
+    def windowClicked(self):
+        pass
 
 
 class Controller:
