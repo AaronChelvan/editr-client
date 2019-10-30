@@ -1,87 +1,13 @@
 from PyQt5 import QtWidgets, QtCore, QtGui
-from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QAction, qApp, QLabel, QLineEdit, QHBoxLayout, QVBoxLayout, QGridLayout, QStackedLayout, QWidget, QToolBox
+from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QAction, qApp, QLabel, QLineEdit, QHBoxLayout, QVBoxLayout, QGridLayout, QStackedLayout, QWidget, QToolBox, QGroupBox
 from PyQt5.QtGui import QIcon, QPalette, QColor, QPixmap
 from PyQt5.QtCore import Qt
-import sys
+import sys, socket
 import client
 
-
-class Login(QtWidgets.QMainWindow):
-
-    switch_window = QtCore.pyqtSignal()
-
-    def __init__(self, app):
-        QtWidgets.QMainWindow.__init__(self)
-
-        self.setGeometry(400,400,700,500)
-        self.setWindowTitle("Editr")
-        #self.setWindowIcon(QIcon('imageTest.jpg'))
-
-        label = QLabel(self)
-        label.setText("Username:")
-        label.move(50,50)
-
-        label2 = QtWidgets.QLabel(self)
-        label2.setText("Password:")
-        label2.move(50,100)
-
-        lineEditUser = QLineEdit('', self)
-        lineEditUser.setGeometry(150,50,215,30)
-
-        lineEditPass = QLineEdit('', self)
-        lineEditPass.setEchoMode(QLineEdit.Password)
-        lineEditPass.setGeometry(150,100,215,30)
-        #lineEditPass.move(150,100)
-
-        loginButton = QPushButton('Login', self)
-        #self.loginButton = QtWidgets.QPushButton('Login')
-        loginButton.move(150,150)
-        loginButton.clicked.connect(self.login)
-
-        exitButton = QPushButton('Exit', self)
-        exitButton.move(265,150)
-        exitButton.clicked.connect(app.quit)
-
-        exitAct = QAction(QIcon('exit.png'), '&Exit', self)
-        exitAct.setShortcut('Ctrl+Q')
-        exitAct.setStatusTip('Exit application')
-        exitAct.triggered.connect(app.quit)
-
-        menubar = self.menuBar()
-        fileMenu = menubar.addMenu('&File')
-        fileMenu.addAction(exitAct)
-
-        #grid = QGridLayout()
-        #widget =
-        #testButton = QPushButton('Test')
-        #grid.setSpacing(10)
-        #grid.addWidget(testButton,100,100)
-        #widget.setLayout(grid)
-        #self.setCentralWidget(widget)
-        #hbox1 = QHBoxLayout()
-        #hbox1.addStretch(1)
-        #hbox1.addWidget(testButton)
-        #hbox1.addWidget(lineEditUser)
-
-        #vbox1 = QVBoxLayout(self)
-
-        #vbox1.addStretch(1)
-        #vbox1.addLayout(hbox1)
-
-        #widget.setLayout(hbox1)
-
-        #hbox2 = QHBoxLayout()
-        #hbox2.addStretch(1)
-        #hbox2.addWidget(label2)
-        #hbox2.addWidget(lineEditPass)
-
-        #self.setCentralWidget()
-
-    def login(self):
-
-        self.switch_window.emit()
-
-
+# The menu window which contains:
+# - Contains a menu for inputting an IP address and port number
+# - A list of recent connections
 
 class Menu(QtWidgets.QMainWindow):
 
@@ -91,41 +17,38 @@ class Menu(QtWidgets.QMainWindow):
         QtWidgets.QMainWindow.__init__(self)
         self.setWindowTitle('Editr')
         self.setGeometry(400,400,600,500)
+        #self.createGridLayout()
+
+        self.central = QtWidgets.QWidget()
+        self.setCentralWidget(self.central)
+        self.grid = GridLayout(self.central)
 
         label = QLabel(self)
         label.setText("IP Address:")
         label.move(50, 50)
 
-        label2 = QtWidgets.QLabel(self)
+        label2 = QLabel(self)
         label2.setText("Port:")
         label2.move(50, 100)
 
-        labelP = QLabel(self)
-        labelP.setBaseSize(2000,2000)
-        pixmap = QPixmap('crab.png').scaled(50,50)
-        labelP.setPixmap(pixmap)
-        labelP.move(200,200)
-        labelP.hasScaledContents()
+        #labelP = QLabel(self)
+        #labelP.setBaseSize(2000,2000)
+        #pixmap = QPixmap('crab.png').scaled(50,50)
+        #labelP.setPixmap(pixmap)
+        #labelP.move(200,200)
+        #labelP.hasScaledContents()
         #pixmap.scaled(20050,2550)
-        labelP.raise_()
+        #labelP.raise_()
 
+        self.lineEditIP = QLineEdit('', self)
+        self.lineEditIP.move(150, 50)
 
-        recents = QtWidgets.QLabel(self)
-        recents.setText("Put recent connections here")
-        recents.setGeometry(300,50,200,20)
-        #recents.width(100)
-        #recents.move(400,50)
-
-        lineEditIP = QLineEdit('', self)
-        lineEditIP.move(150, 50)
-
-        lineEditPort = QLineEdit('', self)
-        lineEditPort.setEchoMode(QLineEdit.Password)
-        lineEditPort.move(150, 100)
+        self.lineEditPort = QLineEdit('', self)
+        self.lineEditPort.move(150, 100)
 
         connectButton = QPushButton('Connect', self)
         connectButton.move(150, 150)
-        connectButton.clicked.connect(self.text)
+        connectButton.clicked.connect(self.connectToServer)
 
         self.menu(app)
 
@@ -144,6 +67,7 @@ class Menu(QtWidgets.QMainWindow):
         filemenu = menubar.addMenu('&File')
         filemenu.addAction(exitAct)
 
+
         ##Will be used to add new connections
         menubar.addMenu('&Add')
 
@@ -159,6 +83,66 @@ class Menu(QtWidgets.QMainWindow):
         helpmenu.addAction(feedbackAct)
         helpmenu.addAction(helpAct)
 
+    def connectToServer(self):
+        # Get the IP address and port number
+        ip = self.lineEditIP.text() # Will need to change this to work
+        port = self.lineEditPort.text()
+        print("ip = %s, port = %s" % (ip, port))
+
+        # Check if the port number is valid
+        if not port.isdigit():
+            print("Invalid port number")  # TODO make this an error message that appears in the UI
+            return
+
+        # Attempt to connect to the server
+        clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            clientSocket.connect((ip, int(port)))
+        except socket.error:
+            print("Could not connect")
+            return
+
+        # If connection successful
+        #self.close()  # close this window
+        #self.grid.addNew(ip,port)
+        window = client.MainWindow(clientSocket)
+        window.show()  # open the text editor window
+        self.app.exec_()
+
+
+class GridLayout(QtWidgets.QGroupBox):
+    def __init__(self, parent):
+        QtWidgets.QWidget.__init__(self,"Recent Connections", parent=parent)
+        self.xCur = 0
+        self.xMax = 5
+        self.yCur = 0
+        self.yMax = 5
+
+        self.move(50,200)
+        self.setFixedSize(500,200)
+
+        #horizontalGroupBox = QGroupBox("Recent Connections")
+        layout = QGridLayout()
+        self.layout = layout
+        layout.setColumnStretch(1, 4)
+        layout.setColumnStretch(2, 4)
+
+        self.setLayout(layout)
+        self.addNew("IP 1", "Port 0")
+
+    def addNew(self, ip, port):
+        if self.xCur < 5:
+            xSet = self.xCur
+            self.xCur += 1
+        else:
+            self.xCur = 0
+            self.yCur += 1
+            xSet = 0
+
+        if self.yCur < 5:
+            self.layout.addWidget(QPushButton(str(ip) + " " + str(port)), xSet, self.yCur)
+
+
 
 class Savededitr:
 
@@ -172,8 +156,8 @@ class Savededitr:
         label.setText(self.name)
         label.move(50, 50) ##Needs relative location
 
-        pixmap = QPixmap('crab.png')
-        label.setPixmap(pixmap)
+        #pixmap = QPixmap('crab.png')
+        #label.setPixmap(pixmap)
 
 
     def windowClicked(self):
@@ -181,56 +165,42 @@ class Savededitr:
 
 
 class Controller:
-
     def __init__(self,app):
         self.app = app
         pass
 
-    def show_login(self):
-        self.login = Login(self.app)
-        self.login.switch_window.connect(self.show_main)
-        self.login.show()
-
-    def show_main(self):
+    def show_menu(self):
         self.window = Menu(self.app)
         self.window.switch_window.connect(self.show_text)
-        self.login.close()
         self.window.show()
 
     def show_text(self):
-        print("before client ")
-        self.text = client.MainWindow()
-        self.window.close()
-        self.text.show()
-        self.app.exec_()
+        self.window = client.MainWindow()
+        self.window.show()
 
-
-
+# The colour scheme
 def palette():
     palette = QPalette()
     palette.setColor(QPalette.Window, QColor(53, 53, 53))
     palette.setColor(QPalette.WindowText, Qt.white)
     palette.setColor(QPalette.Base, QColor(25, 25, 25))
     palette.setColor(QPalette.AlternateBase, QColor(53, 53, 53))
-    # palette.setColor(QPalette.ToolTipBase, Qt.white)
-    # palette.setColor(QPalette.ToolTipText, Qt.white)
     palette.setColor(QPalette.Text, Qt.white)
     palette.setColor(QPalette.Button, QColor(53, 53, 53))
     palette.setColor(QPalette.ButtonText, Qt.white)
     palette.setColor(QPalette.BrightText, Qt.red)
     return palette
 
-
 def main():
     app = QtWidgets.QApplication(sys.argv)
+    recentList = []
     app.setStyle("Fusion")
     app.setApplicationName("Editr")
     pal = palette()
     app.setPalette(pal)
-    controller = Controller(app)
-    controller.show_login()
+    window = Menu(app)
+    window.show()
     sys.exit(app.exec_())
-
 
 if __name__ == '__main__':
     main()
