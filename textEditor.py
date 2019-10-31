@@ -8,10 +8,10 @@ class MainWindow(QMainWindow):
 	stopEditing = pyqtSignal()
 
 	# Constructor
-	def __init__(self, clientSocket):
+	def __init__(self, clientSocket, fileName):
 		super(MainWindow, self).__init__()
 		self.setGeometry(400, 400, 600, 500)
-		self.setCentralWidget(Textbox(clientSocket)) # Add a Textbox to the window
+		self.setCentralWidget(Textbox(clientSocket, fileName)) # Add a Textbox to the window
 		self.clientSocket = clientSocket
 		closeButton = QPushButton('Save & Close', self)
 		closeButton.move(450, 450)
@@ -26,16 +26,17 @@ class MainWindow(QMainWindow):
 # The textbox where the file contents will be displayed
 class Textbox(QTextEdit):
 	# Constructor
-	def __init__(self, clientSocket):
+	def __init__(self, clientSocket, fileName):
 		super(Textbox, self).__init__()
 		self.setFont(QFont('Monospace', 14)) # Set the font
 		self.clientSocket = clientSocket # Save the socket
 
 		# Open the file
-		response = sendUpdate(self.clientSocket, "open", "test.txt")
-		if "Err" in response:
-			print("trying to open a file that doesn't exist")
-			return
+		response = sendUpdate(self.clientSocket, "open", fileName)
+		if "Err" in response["OpenResp"]:
+			print("File doesn't exist! Creating it.")
+			sendUpdate(self.clientSocket, "create", fileName)
+			sendUpdate(self.clientSocket, "open", fileName)
 
 		# Read the file contents and display it in the textbox
 		response = sendUpdate(self.clientSocket, "read", 0, 999)
@@ -80,6 +81,8 @@ def sendUpdate(clientSocket, *args):
 		message["DeleteReq"] = {"offset": args[1], "len": args[2]}
 	elif args[0] == "save":
 		message = "SaveReq"
+	elif args[0] == "create":
+		message["CreateReq"] = args[1]
 	else:
 		print("Unknown operation")
 		exit()

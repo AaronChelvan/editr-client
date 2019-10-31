@@ -9,7 +9,7 @@ import sys, socket
 # - A list of recent connections
 
 class serverMenu(QtWidgets.QMainWindow):
-    connectSuccessful = QtCore.pyqtSignal(object)
+    connectSuccessful = QtCore.pyqtSignal(object, str)
 
     def __init__(self):
         QMainWindow.__init__(self)
@@ -24,6 +24,10 @@ class serverMenu(QtWidgets.QMainWindow):
         label2.setText("Port:")
         label2.move(50, 100)
 
+        label3 = QLabel(self)
+        label3.setText("File name:")
+        label3.move(50, 150)
+        
         recents = QLabel(self)
         recents.setText("Put recent connections here")
         recents.setGeometry(300,50,200,20)
@@ -34,8 +38,8 @@ class serverMenu(QtWidgets.QMainWindow):
         self.lineEditPort = QLineEdit('', self)
         self.lineEditPort.move(150, 100)
 
-        #self.fileName = QLineEdit('', self)
-        #self.fileName.move(150, 150)
+        self.fileName = QLineEdit('', self)
+        self.fileName.move(150, 150)
 
         connectButton = QPushButton('Connect', self)
         connectButton.move(150, 200)
@@ -62,5 +66,5 @@ class serverMenu(QtWidgets.QMainWindow):
             return
 
         # Switch to the text editor window
-        self.connectSuccessful.emit(clientSocket)
+        self.connectSuccessful.emit(clientSocket, self.fileName.text())
 

@@ -26,9 +26,9 @@ class Controller:
         self.window.show()
     '''
 
-    def show_text_editor(self, socket): # The textbox
+    def show_text_editor(self, socket, fileName): # The textbox
         self.window.close()
-        self.window = textEditor.MainWindow(socket)
+        self.window = textEditor.MainWindow(socket, fileName)
         self.window.stopEditing.connect(self.show_server_menu)
         self.window.show()
 
