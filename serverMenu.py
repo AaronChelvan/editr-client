@@ -34,8 +34,11 @@ class serverMenu(QtWidgets.QMainWindow):
         self.lineEditPort = QLineEdit('', self)
         self.lineEditPort.move(150, 100)
 
+        #self.fileName = QLineEdit('', self)
+        #self.fileName.move(150, 150)
+
         connectButton = QPushButton('Connect', self)
-        connectButton.move(150, 150)
+        connectButton.move(150, 200)
         connectButton.clicked.connect(self.connectToServer)
 
 
