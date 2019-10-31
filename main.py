@@ -6,57 +6,6 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QAction, qAp
 from PyQt5.QtGui import QIcon, QPalette, QColor
 from PyQt5.QtCore import Qt
 
-
-class ServerMenu(QtWidgets.QWidget):
-    connectSuccessful = QtCore.pyqtSignal(str)
-
-    def __init__(self):
-        QtWidgets.QWidget.__init__(self)
-        self.setWindowTitle('Main Window')
-
-        layout = QtWidgets.QGridLayout()
-
-        self.line_edit = QtWidgets.QLineEdit()
-        layout.addWidget(self.line_edit)
-
-        self.button = QtWidgets.QPushButton('Switch Window')
-        self.button.clicked.connect(self.viewTextbox)
-        layout.addWidget(self.button)
-
-        self.setLayout(layout)
-
-    def viewTextbox(self):
-        self.connectSuccessful.emit(self.line_edit.text())
-
-
-class FileMenu(QtWidgets.QWidget):
-
-    def __init__(self):
-        # TODO
-        pass
-        
-
-
-class TextEditor(QtWidgets.QWidget):
-    switch_window = QtCore.pyqtSignal()
-
-    def __init__(self):
-        QtWidgets.QWidget.__init__(self)
-        self.setWindowTitle('Login')
-
-        layout = QtWidgets.QGridLayout()
-
-        self.button = QtWidgets.QPushButton('Login')
-        self.button.clicked.connect(self.login)
-
-        layout.addWidget(self.button)
-
-        self.setLayout(layout)
-
-    def login(self):
-        self.switch_window.emit()
-
-
 class Controller:
 
     def __init__(self):
