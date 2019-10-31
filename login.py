@@ -2,6 +2,7 @@ from PyQt5 import QtWidgets, QtCore, QtGui
 from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QAction, qApp, QLabel, QLineEdit, QHBoxLayout, QVBoxLayout, QGridLayout, QStackedLayout, QWidget, QToolBox, QGroupBox
 from PyQt5.QtGui import QIcon, QPalette, QColor, QPixmap
 from PyQt5.QtCore import Qt
+from functools import partial
 import sys, socket
 import client
 
@@ -17,19 +18,21 @@ class Menu(QtWidgets.QMainWindow):
         QtWidgets.QMainWindow.__init__(self)
         self.setWindowTitle('Editr')
         self.setGeometry(400,400,600,500)
+        #self.app = app
 
         self.central = QtWidgets.QWidget()
         self.setCentralWidget(self.central)
         self.grid = GridLayout(self.central)
         self.newRecent(999,999)
 
-        label = QLabel(self)
+        label = QLabel(self.central)
         label.setText("IP Address:")
         label.move(50, 50)
 
-        label2 = QLabel(self)
+        label2 = QLabel(self.central)
         label2.setText("Port:")
         label2.move(50, 100)
+
 
         #labelP = QLabel(self)
         #labelP.setBaseSize(2000,2000)
@@ -40,15 +43,16 @@ class Menu(QtWidgets.QMainWindow):
         #pixmap.scaled(20050,2550)
         #labelP.raise_()
 
-        self.lineEditIP = QLineEdit('', self)
+        self.lineEditIP = QLineEdit('', self.central)
         self.lineEditIP.move(150, 50)
 
-        self.lineEditPort = QLineEdit('', self)
+        self.lineEditPort = QLineEdit('', self.central)
         self.lineEditPort.move(150, 100)
 
-        connectButton = QPushButton('Connect', self)
+        connectButton = QPushButton('Connect', self.central)
         connectButton.move(150, 150)
         connectButton.clicked.connect(self.connectToServer)
+        #connectButton.clicked.connect(partial(self.connectToServer,self.lineEditIP.text(),self.lineEditPort.text()))
 
         self.menu(app)
 
@@ -104,8 +108,7 @@ class Menu(QtWidgets.QMainWindow):
 
         # If connection successful
         #self.close()  # close this window
-        #self.grid.addNew(ip,port)
-        print("yolo")
+        self.newRecent(ip,port)
         window = client.MainWindow(clientSocket)
         window.show()  # open the text editor window
         self.app.exec_()
@@ -141,14 +144,14 @@ class GridLayout(QtWidgets.QGroupBox):
         self.yMax = 5
 
         self.move(50,200)
-        self.setFixedSize(500,200)
+        #self.setFixedSize(500,200)
 
         layout = QGridLayout()
         self.layout = layout
-        layout.setColumnStretch(1, 4)
-        layout.setColumnStretch(2, 4)
+        self.layout.setColumnStretch(1, 1)
+        self.layout.setRowStretch(2, 4)
 
-        self.setLayout(layout)
+        self.setLayout(self.layout)
 
         try:
 
@@ -156,15 +159,15 @@ class GridLayout(QtWidgets.QGroupBox):
                 content = content_file.read()
                 lines = content.splitlines()
                 size = len(lines)
-                if size > 1:
+                #if size > 1:
 
-                    for i in range(0,size):
-                        print(lines[i])
-                        split = lines[i].split(":")
-                        ip = split[0]
-                        port = split[1]
-                        self.addNew(ip,port)
-                        self.recentList.append
+                for i in range(0,size):
+                    print(lines[i])
+                    split = lines[i].split(":")
+                    ip = split[0]
+                    port = split[1]
+                    self.addNew(ip,port)
+                    self.recentList.append
         except FileNotFoundError:
             pass
 
@@ -182,7 +185,6 @@ class GridLayout(QtWidgets.QGroupBox):
             push = QPushButton(str(ip) + ":" + str(port))
             #push.clicked.connect()
             self.layout.addWidget(push, self.xCur, ySet)
-            #self.layout.addWidget(QPushButton(str(ip) + ":" + str(port)), self.xCur, ySet)
             self.recentList.append(Savedrecent(str(ip), str(port)))
 
     def returnList(self):
@@ -196,14 +198,6 @@ class Savedrecent:
     def __init__(self, ip, port):
         self.ip = ip
         self.port = port
-
-    def displayWindows(self):
-        label = QLabel(self)
-        label.setText(self.name)
-        label.move(50, 50)
-
-    def windowClicked(self):
-        pass
 
     def ipAddress(self):
         return self.ip
@@ -239,9 +233,9 @@ def palette():
     palette.setColor(QPalette.BrightText, Qt.red)
     return palette
 
+
 def main():
     app = QtWidgets.QApplication(sys.argv)
-    recentList = []
     app.setStyle("Fusion")
     app.setApplicationName("Editr")
     pal = palette()
@@ -249,6 +243,7 @@ def main():
     window = Menu(app)
     window.show()
     sys.exit(app.exec_())
+
 
 if __name__ == '__main__':
     main()
