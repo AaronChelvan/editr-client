@@ -9,7 +9,7 @@ import sys, socket
 # - A list of recent connections
 
 class serverMenu(QtWidgets.QMainWindow):
-    connectSuccessful = QtCore.pyqtSignal()
+    connectSuccessful = QtCore.pyqtSignal(object)
 
     def __init__(self):
         QMainWindow.__init__(self)
@@ -48,7 +48,6 @@ class serverMenu(QtWidgets.QMainWindow):
         # Check if the port number is valid
         if not port.isdigit():
             print("Invalid port number") # TODO make this an error message that appears in the UI
-            #self.show()
             return
         
         # Attempt to connect to the server
@@ -57,9 +56,8 @@ class serverMenu(QtWidgets.QMainWindow):
             clientSocket.connect((ip, int(port)))
         except socket.error:
             print("Could not connect")
-            #self.show()
             return
 
         # Switch to the text editor window
-        self.connectSuccessful.emit()
+        self.connectSuccessful.emit(clientSocket)
 

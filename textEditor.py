@@ -5,7 +5,7 @@ import json, string, difflib, socket, sys
 
 # The main window for the client program
 class MainWindow(QMainWindow):
-	stopEditing = pyqtSignal(str)
+	stopEditing = pyqtSignal()
 
 	# Constructor
 	def __init__(self, socket):

@@ -66,7 +66,7 @@ class Controller:
         #if self.window != None:
         #    self.window.close()
         self.window = serverMenu.serverMenu()
-        self.window.connectSuccessful.connect(self.show_text)
+        self.window.connectSuccessful.connect(self.show_text_editor)
         self.window.show()
 
     '''
@@ -77,9 +77,9 @@ class Controller:
         self.window.show()
     '''
 
-    def show_text(self): # The textbox
+    def show_text_editor(self, socket): # The textbox
         self.window.close()
-        self.window = textEditor.MainWindow(None)
+        self.window = textEditor.MainWindow(socket)
         self.window.stopEditing.connect(self.show_server_menu)
         self.window.show()
 
