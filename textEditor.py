@@ -76,12 +76,3 @@ class Textbox(QTextEdit):
 				print(response.decode())
 		'''
 		# TODO check that the ack is valid for the request sent
-
-
-#app = QApplication([])
-#app.setApplicationName("Editr Client")
-#def test():
-
-#window = MainWindow()
-#window.show()
-#app.exec_()

@@ -1,6 +1,6 @@
 import sys
-import client
-import login
+import textEditor
+import serverMenu
 from PyQt5 import QtWidgets, QtCore, QtGui
 from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QAction, qApp, QLabel, QLineEdit, QHBoxLayout, QVBoxLayout, QGridLayout, QStackedLayout, QWidget, QToolBox
 from PyQt5.QtGui import QIcon, QPalette, QColor
@@ -65,7 +65,7 @@ class Controller:
     def show_server_menu(self): # The menu where we select a server
         #if self.window != None:
         #    self.window.close()
-        self.window = login.Menu()
+        self.window = serverMenu.serverMenu()
         self.window.connectSuccessful.connect(self.show_text)
         self.window.show()
 
@@ -79,7 +79,7 @@ class Controller:
 
     def show_text(self): # The textbox
         self.window.close()
-        self.window = client.MainWindow(None)
+        self.window = textEditor.MainWindow(None)
         self.window.stopEditing.connect(self.show_server_menu)
         self.window.show()
 
@@ -100,8 +100,7 @@ def main():
     app = QtWidgets.QApplication(sys.argv)
     app.setStyle("Fusion")
     app.setApplicationName("Editr")
-    pal = palette()
-    app.setPalette(pal)
+    app.setPalette(palette())
     controller = Controller()
     controller.show_server_menu()
     sys.exit(app.exec_())
