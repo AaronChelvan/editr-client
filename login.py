@@ -10,7 +10,9 @@ import client
 # - A list of recent connections
 
 class Menu(QtWidgets.QMainWindow):
-    def __init__(self, app):
+    connectSuccessful = QtCore.pyqtSignal()
+
+    def __init__(self):
         QMainWindow.__init__(self)
         self.setWindowTitle('Editr')
         self.setGeometry(400,400,600,500)
@@ -37,6 +39,7 @@ class Menu(QtWidgets.QMainWindow):
         connectButton.move(150, 150)
         connectButton.clicked.connect(self.connectToServer)
 
+        '''
         exitAct = QAction(QIcon('exit.png'), '&Exit', self)
         exitAct.setShortcut('Ctrl+Q')
         exitAct.setStatusTip('Exit application')
@@ -45,6 +48,10 @@ class Menu(QtWidgets.QMainWindow):
         menubar = self.menuBar()
         fileMenu = menubar.addMenu('&File')
         fileMenu.addAction(exitAct)
+        
+        self.show()
+        '''
+        #self.app.exec_()
 
     def connectToServer(self):
         # Get the IP address and port number
@@ -55,6 +62,7 @@ class Menu(QtWidgets.QMainWindow):
         # Check if the port number is valid
         if not port.isdigit():
             print("Invalid port number") # TODO make this an error message that appears in the UI
+            #self.show()
             return
         
         # Attempt to connect to the server
@@ -63,27 +71,17 @@ class Menu(QtWidgets.QMainWindow):
             clientSocket.connect((ip, int(port)))
         except socket.error:
             print("Could not connect")
+            #self.show()
             return
         
         # If connection successful
-        self.close() # close this window
-        window = client.MainWindow(clientSocket)
-        window.show() # open the text editor window
-        self.app.exec_()
-
-class Controller:
-    def __init__(self,app):
-        self.app = app
-        pass
-
-    def show_menu(self):
-        self.window = Menu(self.app)
-        self.window.switch_window.connect(self.show_text)
-        self.window.show()
-
-    def show_text(self):
-        self.window = client.MainWindow()
-        self.window.show()
+        #self.close() # close this window
+        #self.hide()
+        #window = client.MainWindow(clientSocket)
+        #window.show() # open the text editor window
+        self.connectSuccessful.emit()
+        #self.app.quit()
+        #self.app.exec_()
 
 # The colour scheme
 def palette():
@@ -98,15 +96,18 @@ def palette():
     palette.setColor(QPalette.BrightText, Qt.red)
     return palette
 
+'''
 def main():
     app = QtWidgets.QApplication(sys.argv)
     app.setStyle("Fusion")
     app.setApplicationName("Editr")
     pal = palette()
     app.setPalette(pal)
-    window = Menu(app)
+    window = Menu()
     window.show()
-    sys.exit(app.exec_())
+    app.exec_()
+    #sys.exit(app.exec_())
 
 if __name__ == '__main__':
     main()
+'''
