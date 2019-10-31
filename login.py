@@ -17,11 +17,11 @@ class Menu(QtWidgets.QMainWindow):
         QtWidgets.QMainWindow.__init__(self)
         self.setWindowTitle('Editr')
         self.setGeometry(400,400,600,500)
-        #self.createGridLayout()
 
         self.central = QtWidgets.QWidget()
         self.setCentralWidget(self.central)
         self.grid = GridLayout(self.central)
+        self.newRecent(999,999)
 
         label = QLabel(self)
         label.setText("IP Address:")
@@ -105,14 +105,36 @@ class Menu(QtWidgets.QMainWindow):
         # If connection successful
         #self.close()  # close this window
         #self.grid.addNew(ip,port)
+        print("yolo")
         window = client.MainWindow(clientSocket)
         window.show()  # open the text editor window
         self.app.exec_()
 
 
+    def newRecent(self,ip,port):
+        check = False
+        for object in self.grid.returnList():
+            ipTest = object.ipAddress()
+            portTest = object.portReturn()
+            if str(ip) == ipTest and str(port) == portTest:
+                check = True
+                break
+            else:
+                continue
+
+        if not check:
+            self.grid.addNew(ip,port)
+            with open("recents.txt", "a+") as f:
+                f.write(str(ip) + ":" + str(port) + "\n")
+
+
+
+
+
 class GridLayout(QtWidgets.QGroupBox):
     def __init__(self, parent):
         QtWidgets.QWidget.__init__(self,"Recent Connections", parent=parent)
+        self.recentList = []
         self.xCur = 0
         self.xMax = 5
         self.yCur = 0
@@ -121,47 +143,73 @@ class GridLayout(QtWidgets.QGroupBox):
         self.move(50,200)
         self.setFixedSize(500,200)
 
-        #horizontalGroupBox = QGroupBox("Recent Connections")
         layout = QGridLayout()
         self.layout = layout
         layout.setColumnStretch(1, 4)
         layout.setColumnStretch(2, 4)
 
         self.setLayout(layout)
-        self.addNew("IP 1", "Port 0")
+
+        try:
+
+            with open('recents.txt') as content_file:
+                content = content_file.read()
+                lines = content.splitlines()
+                size = len(lines)
+                if size > 1:
+
+                    for i in range(0,size):
+                        print(lines[i])
+                        split = lines[i].split(":")
+                        ip = split[0]
+                        port = split[1]
+                        self.addNew(ip,port)
+                        self.recentList.append
+        except FileNotFoundError:
+            pass
+
 
     def addNew(self, ip, port):
-        if self.xCur < 5:
-            xSet = self.xCur
-            self.xCur += 1
-        else:
-            self.xCur = 0
+        if self.yCur < 5:
+            ySet = self.yCur
             self.yCur += 1
-            xSet = 0
+        else:
+            self.yCur = 0
+            self.xCur += 1
+            ySet = 0
 
         if self.yCur < 5:
-            self.layout.addWidget(QPushButton(str(ip) + " " + str(port)), xSet, self.yCur)
+            push = QPushButton(str(ip) + ":" + str(port))
+            #push.clicked.connect()
+            self.layout.addWidget(push, self.xCur, ySet)
+            #self.layout.addWidget(QPushButton(str(ip) + ":" + str(port)), self.xCur, ySet)
+            self.recentList.append(Savedrecent(str(ip), str(port)))
+
+    def returnList(self):
+        return self.recentList
 
 
 
-class Savededitr:
 
-    def __init__(self, name, ip, port):
-        self.name = name
+class Savedrecent:
+
+    def __init__(self, ip, port):
         self.ip = ip
         self.port = port
 
     def displayWindows(self):
         label = QLabel(self)
         label.setText(self.name)
-        label.move(50, 50) ##Needs relative location
-
-        #pixmap = QPixmap('crab.png')
-        #label.setPixmap(pixmap)
-
+        label.move(50, 50)
 
     def windowClicked(self):
         pass
+
+    def ipAddress(self):
+        return self.ip
+
+    def portReturn(self):
+        return self.port
 
 
 class Controller:
