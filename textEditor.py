@@ -19,9 +19,8 @@ class MainWindow(QMainWindow):
 	
 	def stopEditingFunction(self):
 		# Save the changes made and close the file
-		# TODO - save seems to hang
-		# sendUpdate(self.clientSocket, "save")
-		self.clientSocket.close()
+		sendUpdate(self.clientSocket, "save")
+		self.clientSocket.close() # TODO - get rid of this once the file selection screen is added
 		self.stopEditing.emit()
 
 # The textbox where the file contents will be displayed
@@ -80,7 +79,7 @@ def sendUpdate(clientSocket, *args):
 	elif args[0] == "delete":
 		message["DeleteReq"] = {"offset": args[1], "len": args[2]}
 	elif args[0] == "save":
-		message["SaveReq"] = ""
+		message = "SaveReq"
 	else:
 		print("Unknown operation")
 		exit()
