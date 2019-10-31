@@ -19,7 +19,7 @@ class serverMenu(QtWidgets.QMainWindow):
 
         self.central = QtWidgets.QWidget()
         self.setCentralWidget(self.central)
-        self.grid = GridLayout(self.central)
+        self.grid = GridLayout(self.central,self.emitObject)
         self.newRecent(999, 999)
 
         label = QLabel(self.central)
@@ -39,9 +39,12 @@ class serverMenu(QtWidgets.QMainWindow):
         connectButton = QPushButton('Connect', self.central)
         connectButton.move(150, 150)
         connectButton.clicked.connect(self.connectToServer)
-        #connectButton.clicked.connect(partial(self.connectToServer,str(self.lineEditIP.text()),str(self.lineEditPort.text())))
-        #connectButton.clicked.connect(lambda: self.connectSuccessful(str(1), str(12345)))
+        #connectButton.clicked.connect(partial(self.connectToServer, str(self.lineEditIP.text()),str(self.lineEditPort.text())))
+        #connectButton.clicked.connect(lambda: self.connectSuccessful("127.0.0.1", 12345))
         #self.menu(app)
+
+    def emitObject(self,object):
+        self.connectSuccessful.emit(object)
 
     def text(self):
         print("main switch")
@@ -114,16 +117,17 @@ class serverMenu(QtWidgets.QMainWindow):
         self.connectSuccessful.emit(clientSocket)
 
 class GridLayout(QtWidgets.QGroupBox):
-    def __init__(self, parent):
+    def __init__(self, parent,win):
         QtWidgets.QWidget.__init__(self,"Recent Connections", parent=parent)
         self.recentList = []
         self.xCur = 0
         self.xMax = 5
         self.yCur = 0
         self.yMax = 5
+        self.win = win
 
         self.move(50,200)
-        #self.setFixedSize(500,200)
+        self.setFixedSize(500,200)
 
         layout = QGridLayout()
         self.layout = layout
@@ -163,7 +167,7 @@ class GridLayout(QtWidgets.QGroupBox):
         if self.yCur < 5:
             push = QPushButton(str(ip) + ":" + str(port))
             self.layout.addWidget(push, self.xCur, ySet)
-            new = Savedrecent(str(ip), str(port))
+            new = Savedrecent(str(ip), str(port), self.win)
             push.clicked.connect(new.connectToServer)
             self.recentList.append(new)
 
@@ -171,13 +175,13 @@ class GridLayout(QtWidgets.QGroupBox):
         return self.recentList
 
 
-
 class Savedrecent:
     connectSuccessful = QtCore.pyqtSignal(object)
 
-    def __init__(self, ip, port):
+    def __init__(self, ip, port,win):
         self.ip = ip
         self.port = port
+        self.win = win
 
     def ipAddress(self):
         return self.ip
@@ -204,8 +208,9 @@ class Savedrecent:
             print("Could not connect")
             return
 
+        self.win(clientSocket)
         # Switch to the text editor window
         #self.newRecent(ip, port)
-        self.connectSuccessful.emit(clientSocket)
+        #self.connectSuccessful.emit(clientSocket)
 
 
