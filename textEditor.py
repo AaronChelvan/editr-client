@@ -1,15 +1,16 @@
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
+from lib import *
 import json, string, difflib, socket, sys
 
 # The text editor window
-class MainWindow(QMainWindow):
-	stopEditing = pyqtSignal()
+class textEditorWindow(QMainWindow):
+	stopEditing = pyqtSignal(object)
 
 	# Constructor
 	def __init__(self, clientSocket, fileName):
-		super(MainWindow, self).__init__()
+		super(textEditorWindow, self).__init__()
 		self.setGeometry(400, 400, 600, 500)
 		self.setCentralWidget(Textbox(clientSocket, fileName)) # Add a Textbox to the window
 		self.clientSocket = clientSocket
@@ -19,9 +20,8 @@ class MainWindow(QMainWindow):
 	
 	def stopEditingFunction(self):
 		# Save the changes made and close the file
-		sendUpdate(self.clientSocket, "save")
-		self.clientSocket.close() # TODO - get rid of this once the file selection screen is added
-		self.stopEditing.emit()
+		sendMessage(self.clientSocket, "save")
+		self.stopEditing.emit(self.clientSocket)
 
 # The textbox where the file contents will be displayed
 class Textbox(QTextEdit):
@@ -32,14 +32,10 @@ class Textbox(QTextEdit):
 		self.clientSocket = clientSocket # Save the socket
 
 		# Open the file
-		response = sendUpdate(self.clientSocket, "open", fileName)
-		if "Err" in response["OpenResp"]:
-			print("File doesn't exist! Creating it.")
-			sendUpdate(self.clientSocket, "create", fileName)
-			sendUpdate(self.clientSocket, "open", fileName)
+		sendMessage(self.clientSocket, "open", fileName)
 
 		# Read the file contents and display it in the textbox
-		response = sendUpdate(self.clientSocket, "read", 0, 999)
+		response = sendMessage(self.clientSocket, "read", 0, 999)
 		fileContents = response["ReadResp"]["Ok"]
 		fileContents = bytearray(fileContents).decode("utf-8")
 		self.setText(fileContents)
@@ -56,54 +52,11 @@ class Textbox(QTextEdit):
 		# Iterate through the changes
 		for tag, i1, i2, j1, j2 in s.get_opcodes():
 			if tag == "replace": # If characters were overwritten
-				sendUpdate(self.clientSocket, "delete", i1, i2-i1)
-				sendUpdate(self.clientSocket, "write", i1, self.toPlainText()[j1:j2])
+				sendMessage(self.clientSocket, "delete", i1, i2-i1)
+				sendMessage(self.clientSocket, "write", i1, self.toPlainText()[j1:j2])
 			elif tag == "delete": # If characters were deleted
-				sendUpdate(self.clientSocket, "delete", i1, i2-i1)
+				sendMessage(self.clientSocket, "delete", i1, i2-i1)
 			elif tag == "insert": # If characters were inserted
-				sendUpdate(self.clientSocket, "write", i1, self.toPlainText()[j1:j2])
+				sendMessage(self.clientSocket, "write", i1, self.toPlainText()[j1:j2])
 
 		self.prevText = self.toPlainText()
-
-# When the contents of the textbox is edited, generate a JSON string describing the edit
-# and send it to the server
-def sendUpdate(clientSocket, *args):
-	message = {}
-	if args[0] == "open":
-		fileName = args[1]
-		message["OpenReq"] = fileName
-	elif args[0] == "write":
-		data = list(bytes(args[2], "utf-8"))
-		message["WriteReq"] = {"offset": args[1], "data": data}
-	elif args[0] == "read":
-		message["ReadReq"] = {"offset": args[1], "len": args[2]}
-	elif args[0] == "delete":
-		message["DeleteReq"] = {"offset": args[1], "len": args[2]}
-	elif args[0] == "save":
-		message = "SaveReq"
-	elif args[0] == "create":
-		message["CreateReq"] = args[1]
-	else:
-		print("Unknown operation")
-		exit()
-
-	print(message)
-	# Convert "message" to a JSON string and send it to the server
-	clientSocket.send(json.dumps(message).encode("utf-8"))
-	# TODO - If the JSON string is greater than 1024 bytes, break it up into multiple messages  
-
-	# Wait for an ack
-	response = clientSocket.recv(1024)
-	responseDict = json.loads(response.decode())
-	print(responseDict)
-	return responseDict
-
-	'''
-	while True:
-		response = self.clientSocket.recv(1024)
-		if not response:
-			break
-		else:
-			print(response.decode())
-	'''
-	# TODO check that the ack is valid for the request sent

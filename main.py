@@ -1,6 +1,7 @@
 import sys
 import textEditor
 import serverMenu
+import fileMenu
 from PyQt5 import QtWidgets, QtCore, QtGui
 from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QAction, qApp, QLabel, QLineEdit, QHBoxLayout, QVBoxLayout, QGridLayout, QStackedLayout, QWidget, QToolBox
 from PyQt5.QtGui import QIcon, QPalette, QColor
@@ -14,22 +15,23 @@ class Controller:
     def show_server_menu(self): # The menu where we select a server
         #if self.window != None:
         #    self.window.close()
-        self.window = serverMenu.serverMenu()
-        self.window.connectSuccessful.connect(self.show_text_editor)
+        self.window = serverMenu.serverMenuWindow()
+        self.window.connectSuccessful.connect(self.show_file_menu)
         self.window.show()
 
-    '''
-    def show_file_menu(self): # The menu where we select a file
+    
+    def show_file_menu(self, clientSocket): # The menu where we select a file
         self.window.close()
-        self.window = MainWindow()
-        self.window.switch_window.connect(self.show_window_two)
+        self.window = fileMenu.fileMenuWindow(clientSocket)
+        self.window.startEditing.connect(self.show_text_editor)
+        self.window.closeConnection.connect(self.show_server_menu)
         self.window.show()
-    '''
+    
 
-    def show_text_editor(self, socket, fileName): # The textbox
+    def show_text_editor(self, clientSocket, fileName): # The textbox
         self.window.close()
-        self.window = textEditor.MainWindow(socket, fileName)
-        self.window.stopEditing.connect(self.show_server_menu)
+        self.window = textEditor.textEditorWindow(clientSocket, fileName)
+        self.window.stopEditing.connect(self.show_file_menu)
         self.window.show()
 
 # The colour scheme

@@ -9,8 +9,8 @@ import sys, socket
 # - Contains a menu for inputting an IP address and port number
 # - A list of recent connections
 
-class serverMenu(QtWidgets.QMainWindow):
-    connectSuccessful = QtCore.pyqtSignal(object, str)
+class serverMenuWindow(QtWidgets.QMainWindow):
+    connectSuccessful = QtCore.pyqtSignal(object)
 
     def __init__(self):
         QtWidgets.QMainWindow.__init__(self)
@@ -29,10 +29,6 @@ class serverMenu(QtWidgets.QMainWindow):
         label2 = QLabel(self.central)
         label2.setText("Port:")
         label2.move(50, 100)
-        
-        label3 = QLabel(self)
-        label3.setText("File name:")
-        label3.move(50, 150)
         
         recents = QLabel(self)
         recents.setText("Put recent connections here")
@@ -125,7 +121,7 @@ class serverMenu(QtWidgets.QMainWindow):
 
         # Switch to the text editor window
         self.newRecent(ip, port)
-        self.connectSuccessful.emit(clientSocket, self.fileName.text())
+        self.connectSuccessful.emit(clientSocket)
 
 class GridLayout(QtWidgets.QGroupBox):
     def __init__(self, parent,win):
