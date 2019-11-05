@@ -1,5 +1,5 @@
 from PyQt5 import QtWidgets, QtCore, QtGui
-from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QAction, qApp, QLabel, QLineEdit, QHBoxLayout, QVBoxLayout, QGridLayout, QStackedLayout, QWidget, QToolBox, QComboBox, QGroupBox
+from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QAction, qApp, QLabel, QLineEdit, QHBoxLayout, QVBoxLayout, QGridLayout, QStackedLayout, QWidget, QToolBox, QComboBox, QGroupBox, QMessageBox
 from PyQt5.QtGui import QIcon, QPalette, QColor
 from PyQt5.QtCore import Qt
 from lib import *
@@ -87,8 +87,20 @@ class fileMenuWindow(QtWidgets.QMainWindow):
 
 	def createFileHandler(self):
 		fileName = self.lineEditFileName.text()
-		sendMessage(self.clientSocket, "create", fileName)
-		print("created " + fileName)
+		response = sendMessage(self.clientSocket, "create", fileName)
+		if "Err" in response["CreateResp"]:
+			print("file already exists")
+			errorMessage = QMessageBox()
+			errorMessage.setIcon(QMessageBox.Warning)
+			errorMessage.setText("\"%s\" already exists" % fileName)
+			errorMessage.setWindowTitle("Error")
+			errorMessage.exec_()
+		else:
+			print("created " + fileName)
+			successMessage = QMessageBox()
+			successMessage.setText("\"%s\" created" % fileName)
+			successMessage.setWindowTitle("Success")
+			successMessage.exec_()
 
 	def renameFileHandler(self):
 		print("clicked rename button")
