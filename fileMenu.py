@@ -1,5 +1,5 @@
 from PyQt5 import QtWidgets, QtCore, QtGui
-from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QAction, qApp, QLabel, QLineEdit, QHBoxLayout, QVBoxLayout, QGridLayout, QStackedLayout, QWidget, QToolBox
+from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QAction, qApp, QLabel, QLineEdit, QHBoxLayout, QVBoxLayout, QGridLayout, QStackedLayout, QWidget, QToolBox, QComboBox
 from PyQt5.QtGui import QIcon, QPalette, QColor
 from PyQt5.QtCore import Qt
 from lib import *
@@ -14,29 +14,51 @@ class fileMenuWindow(QtWidgets.QMainWindow):
 		self.setGeometry(400,400,600,500)
 		self.clientSocket = clientSocket
 
-		label = QLabel(self)
-		label.setText("File name:")
-		label.move(50, 50)
+		# Label for the drop-down menu
+		fileNameLabel = QLabel()
+		fileNameLabel.setText("File name:")
+		fileNameLabel.setFixedSize(100, 50)
 
-		self.lineEditFileName = QLineEdit('', self)
-		self.lineEditFileName.move(150, 50)
+		# Drop-down menu for selecting a file
+		self.comboBox = QComboBox()
+		# TODO - add the list of files from the server to the combox box
+		exampleFiles = ["file1", "file2", "file3"]
+		for f in exampleFiles:
+			self.comboBox.addItem(f) 
 
-		openFileButton = QPushButton('Open File', self)
-		openFileButton.move(150, 150)
+		# Button for opening a file
+		openFileButton = QPushButton('Open File')
 		openFileButton.clicked.connect(self.openFileHandler) 
-		
-		createFileButton = QPushButton('Create File', self)
-		createFileButton.move(150, 200)
-		createFileButton.clicked.connect(self.createFileHandler) 
-		
-		closeButton = QPushButton('Close Connection', self)
-		closeButton.move(150, 250)
-		closeButton.clicked.connect(self.closeConnectionHandler)
+		openFileButton.setFixedSize(100, 50)
 
+		# Text field for entering the name of a file to create
+		self.lineEditFileName = QLineEdit()
+		self.lineEditFileName.setFixedSize(200, 30)
 		
+		# Button for creating a file
+		createFileButton = QPushButton('Create File')
+		createFileButton.clicked.connect(self.createFileHandler) 
+		createFileButton.setFixedSize(100, 50)
+		
+		# Button for closing connection to the server
+		closeButton = QPushButton('Close Connection')
+		closeButton.clicked.connect(self.closeConnectionHandler)
+		closeButton.setFixedSize(150, 50)
+
+		# Layout configuration
+		layout = QGridLayout()
+		layout.addWidget(fileNameLabel, 0, 0)
+		layout.addWidget(self.comboBox, 0, 1)
+		layout.addWidget(openFileButton, 1, 0)
+		layout.addWidget(self.lineEditFileName, 2, 0)
+		layout.addWidget(createFileButton, 2, 1)
+		layout.addWidget(closeButton, 3, 0)
+		q = QWidget()
+		q.setLayout(layout)
+		self.setCentralWidget(q)
 
 	def openFileHandler(self):
-		fileName = self.lineEditFileName.text()
+		fileName = self.comboBox.currentText()
 		self.startEditing.emit(self.clientSocket, fileName)
 
 	def createFileHandler(self):

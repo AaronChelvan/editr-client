@@ -40,11 +40,8 @@ class serverMenuWindow(QtWidgets.QMainWindow):
         self.lineEditPort = QLineEdit('', self.central)
         self.lineEditPort.move(150, 100)
 
-        self.fileName = QLineEdit('', self.central)
-        self.fileName.move(150, 150)
-
         connectButton = QPushButton('Connect', self.central)
-        connectButton.move(200, 200)
+        connectButton.move(200, 150)
         connectButton.clicked.connect(self.connectToServer)
         #connectButton.clicked.connect(partial(self.connectToServer, str(self.lineEditIP.text()),str(self.lineEditPort.text())))
         #connectButton.clicked.connect(lambda: self.connectSuccessful("127.0.0.1", 12345))
