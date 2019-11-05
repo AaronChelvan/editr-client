@@ -4,19 +4,24 @@ import json
 def sendMessage(clientSocket, *args):
 	message = {}
 	if args[0] == "open":
-		fileName = args[1]
-		message["OpenReq"] = fileName
+		message["OpenReq"] = args[1]
+	elif args[0] == "close":
+		message = "CloseReq"
 	elif args[0] == "write":
 		data = list(bytes(args[2], "utf-8"))
 		message["WriteReq"] = {"offset": args[1], "data": data}
 	elif args[0] == "read":
 		message["ReadReq"] = {"offset": args[1], "len": args[2]}
-	elif args[0] == "delete":
-		message["DeleteReq"] = {"offset": args[1], "len": args[2]}
+	elif args[0] == "remove":
+		message["RemoveReq"] = {"offset": args[1], "len": args[2]}
 	elif args[0] == "save":
 		message = "SaveReq"
 	elif args[0] == "create":
 		message["CreateReq"] = args[1]
+	elif args[0] == "delete":
+		message["DeleteReq"] = args[1]
+	elif args[0] == "rename":
+		message["RenameReq"] = {"from": args[1], "to": args[2]}
 	elif args[0] == "getFiles":
 		message = "FilesListReq"
 	else:

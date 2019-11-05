@@ -1,5 +1,5 @@
 from PyQt5 import QtWidgets, QtCore, QtGui
-from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QAction, qApp, QLabel, QLineEdit, QHBoxLayout, QVBoxLayout, QGridLayout, QStackedLayout, QWidget, QToolBox, QComboBox, QGroupBox, QMessageBox
+from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QAction, qApp, QLabel, QLineEdit, QHBoxLayout, QVBoxLayout, QGridLayout, QStackedLayout, QWidget, QToolBox, QComboBox, QGroupBox, QMessageBox, QInputDialog
 from PyQt5.QtGui import QIcon, QPalette, QColor
 from PyQt5.QtCore import Qt
 from lib import *
@@ -81,38 +81,51 @@ class fileMenuWindow(QtWidgets.QMainWindow):
 
 	def openFileHandler(self):
 		fileName = self.comboBox.currentText()
-		self.startEditing.emit(self.clientSocket, fileName)
+		response = sendMessage(self.clientSocket, "open", fileName)
+		if "Err" in response["OpenResp"]:
+			self.showErrorMessage(response["OpenResp"]["Err"])
+		else:
+			self.startEditing.emit(self.clientSocket, fileName)
 
 	def createFileHandler(self):
 		fileName = self.lineEditFileName.text()
 		response = sendMessage(self.clientSocket, "create", fileName)
 		if "Err" in response["CreateResp"]:
-			print("file already exists")
-			errorMessage = QMessageBox()
-			errorMessage.setIcon(QMessageBox.Warning)
-			errorMessage.setText("\"%s\" already exists" % fileName)
-			errorMessage.setWindowTitle("Error")
-			errorMessage.exec_()
+			self.showErrorMessage(response["CreateResp"]["Err"])
 		else:
-			print("created " + fileName)
-			successMessage = QMessageBox()
-			successMessage.setText("\"%s\" created" % fileName)
-			successMessage.setWindowTitle("Success")
-			successMessage.exec_()
+			self.showSuccessMessage("\"%s\" created" % fileName)
 		self.updateFileList()
 
 	def renameFileHandler(self):
-		print("clicked rename button")
+		fileName = self.comboBox.currentText()
+		newName, okPressed = QInputDialog.getText(self, "Rename file", "Enter new file name:", QLineEdit.Normal, "")
+		if okPressed: 
+			if newName != '':
+				response = sendMessage(self.clientSocket, "rename", fileName, newName)
+				if "Err" in response["RenameResp"]:
+					self.showErrorMessage(response["RenameResp"]["Err"])
+				else:
+					self.showSuccessMessage("Renamed \"%s\" to \"%s\"" % (fileName, newName))
+			else:
+				self.showErrorMessage("File name cannot be empty")
 		self.updateFileList()
 
 	def deleteFileHandler(self):
-		print("clicked delete button")
+		fileName = self.comboBox.currentText()
+		response = sendMessage(self.clientSocket, "delete", fileName)
+		if "Err" in response["DeleteResp"]:
+			self.showErrorMessage(response["DeleteResp"]["Err"])
+		else:
+			self.showSuccessMessage("Deleted \"%s\"" % fileName)
 		self.updateFileList()
 	
 	# Updates the list of files displayed in the drop-down menu
 	def updateFileList(self):
 		# Retrieve the list of files from the server
 		response = sendMessage(self.clientSocket, "getFiles")
+		if "Err" in response["FilesListResp"]:
+			self.showErrorMessage(response["FilesListResp"]["Err"])
+			return
 		listFiles = sorted(response["FilesListResp"]["Ok"])
 		
 		# Add the files to the drop-down menu
@@ -133,3 +146,16 @@ class fileMenuWindow(QtWidgets.QMainWindow):
 	def closeConnectionHandler(self):     
 		self.clientSocket.close()
 		self.closeConnection.emit()
+
+	def showErrorMessage(self, message):
+		errorMessage = QMessageBox()
+		errorMessage.setIcon(QMessageBox.Warning)
+		errorMessage.setText(message)
+		errorMessage.setWindowTitle("Error")
+		errorMessage.exec_()
+
+	def showSuccessMessage(self, message):
+		successMessage = QMessageBox()
+		successMessage.setText(message)
+		successMessage.setWindowTitle("Success")
+		successMessage.exec_()

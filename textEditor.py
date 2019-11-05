@@ -21,6 +21,7 @@ class textEditorWindow(QMainWindow):
 	def stopEditingFunction(self):
 		# Save the changes made and close the file
 		sendMessage(self.clientSocket, "save")
+		sendMessage(self.clientSocket, "close")
 		self.stopEditing.emit(self.clientSocket)
 
 # The textbox where the file contents will be displayed
@@ -30,9 +31,6 @@ class Textbox(QTextEdit):
 		super(Textbox, self).__init__()
 		self.setFont(QFont('Monospace', 14)) # Set the font
 		self.clientSocket = clientSocket # Save the socket
-
-		# Open the file
-		sendMessage(self.clientSocket, "open", fileName)
 
 		# Read the file contents and display it in the textbox
 		response = sendMessage(self.clientSocket, "read", 0, 999)
@@ -52,10 +50,10 @@ class Textbox(QTextEdit):
 		# Iterate through the changes
 		for tag, i1, i2, j1, j2 in s.get_opcodes():
 			if tag == "replace": # If characters were overwritten
-				sendMessage(self.clientSocket, "delete", i1, i2-i1)
+				sendMessage(self.clientSocket, "remove", i1, i2-i1)
 				sendMessage(self.clientSocket, "write", i1, self.toPlainText()[j1:j2])
-			elif tag == "delete": # If characters were deleted
-				sendMessage(self.clientSocket, "delete", i1, i2-i1)
+			elif tag == "remove": # If characters were removed
+				sendMessage(self.clientSocket, "remove", i1, i2-i1)
 			elif tag == "insert": # If characters were inserted
 				sendMessage(self.clientSocket, "write", i1, self.toPlainText()[j1:j2])
 
