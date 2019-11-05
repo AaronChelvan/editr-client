@@ -19,18 +19,26 @@ class fileMenuWindow(QtWidgets.QMainWindow):
 		fileNameLabel.setText("File name:")
 		fileNameLabel.setFixedSize(100, 50)
 
+		# Button for opening a file
+		self.openFileButton = QPushButton('Open File')
+		self.openFileButton.clicked.connect(self.openFileHandler) 
+		self.openFileButton.setFixedSize(100, 50)
+
+		# Button for renaming a file
+		self.renameFileButton = QPushButton('Rename File')
+		self.renameFileButton.clicked.connect(self.renameFileHandler)
+		self.renameFileButton.setFixedSize(100, 50)
+
+		# Button for deleting a file
+		self.deleteFileButton = QPushButton('Delete File')
+		self.deleteFileButton.clicked.connect(self.deleteFileHandler)
+		self.deleteFileButton.setFixedSize(100, 50)
+		
 		# Drop-down menu for selecting a file
 		self.comboBox = QComboBox()
-		# TODO - add the list of files from the server to the combox box
-		exampleFiles = ["file1", "file2", "file3"]
-		for f in exampleFiles:
-			self.comboBox.addItem(f) 
-
-		# Button for opening a file
-		openFileButton = QPushButton('Open File')
-		openFileButton.clicked.connect(self.openFileHandler) 
-		openFileButton.setFixedSize(100, 50)
-
+		self.comboBox.view().setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+		self.updateFileList()
+		
 		# Text field for entering the name of a file to create
 		self.lineEditFileName = QLineEdit()
 		self.lineEditFileName.setFixedSize(200, 30)
@@ -39,16 +47,6 @@ class fileMenuWindow(QtWidgets.QMainWindow):
 		createFileButton = QPushButton('Create File')
 		createFileButton.clicked.connect(self.createFileHandler) 
 		createFileButton.setFixedSize(100, 50)
-
-		# Button for renaming a file
-		renameFileButton = QPushButton('Rename File')
-		renameFileButton.clicked.connect(self.renameFileHandler)
-		renameFileButton.setFixedSize(100, 50)
-
-		# Button for deleting a file
-		deleteFileButton = QPushButton('Delete File')
-		deleteFileButton.clicked.connect(self.deleteFileHandler)
-		deleteFileButton.setFixedSize(100, 50)
 		
 		# Button for closing connection to the server
 		closeButton = QPushButton('Close Connection')
@@ -58,9 +56,9 @@ class fileMenuWindow(QtWidgets.QMainWindow):
 		# Layout configuration
 		fileSelectLayout = QHBoxLayout()
 		fileSelectLayout.addWidget(self.comboBox)
-		fileSelectLayout.addWidget(openFileButton)
-		fileSelectLayout.addWidget(renameFileButton)
-		fileSelectLayout.addWidget(deleteFileButton)
+		fileSelectLayout.addWidget(self.openFileButton)
+		fileSelectLayout.addWidget(self.renameFileButton)
+		fileSelectLayout.addWidget(self.deleteFileButton)
 		fileSelectGroupBox = QGroupBox()
 		fileSelectGroupBox.setLayout(fileSelectLayout)
 		fileSelectGroupBox.setTitle("Select a file")
@@ -101,13 +99,37 @@ class fileMenuWindow(QtWidgets.QMainWindow):
 			successMessage.setText("\"%s\" created" % fileName)
 			successMessage.setWindowTitle("Success")
 			successMessage.exec_()
+		self.updateFileList()
 
 	def renameFileHandler(self):
 		print("clicked rename button")
+		self.updateFileList()
 
 	def deleteFileHandler(self):
 		print("clicked delete button")
+		self.updateFileList()
 	
+	# Updates the list of files displayed in the drop-down menu
+	def updateFileList(self):
+		# Retrieve the list of files from the server
+		response = sendMessage(self.clientSocket, "getFiles")
+		listFiles = sorted(response["FilesListResp"]["Ok"])
+		
+		# Add the files to the drop-down menu
+		self.comboBox.clear()
+		for file in listFiles:
+			self.comboBox.addItem(file)
+
+		# If there are no files, disable the "open", "rename", and "delete" buttons
+		if len(listFiles) == 0:
+			self.openFileButton.setEnabled(False)
+			self.renameFileButton.setEnabled(False)
+			self.deleteFileButton.setEnabled(False)
+		else: # Otherwise, enable all of the buttons
+			self.openFileButton.setEnabled(True)
+			self.renameFileButton.setEnabled(True)
+			self.deleteFileButton.setEnabled(True)
+
 	def closeConnectionHandler(self):     
 		self.clientSocket.close()
 		self.closeConnection.emit()

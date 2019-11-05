@@ -17,6 +17,8 @@ def sendMessage(clientSocket, *args):
 		message = "SaveReq"
 	elif args[0] == "create":
 		message["CreateReq"] = args[1]
+	elif args[0] == "getFiles":
+		message = "FilesListReq"
 	else:
 		print("Unknown operation")
 		exit()
