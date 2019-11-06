@@ -52,6 +52,7 @@ def main():
     app.setStyle("Fusion")
     app.setApplicationName("Editr")
     app.setPalette(palette())
+    app.setWindowIcon(QIcon("EditrLogo"))
     controller = Controller()
     controller.show_server_menu()
     sys.exit(app.exec_())

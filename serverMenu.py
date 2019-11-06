@@ -1,5 +1,5 @@
 from PyQt5 import QtWidgets, QtCore, QtGui
-from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QAction, qApp, QLabel, QLineEdit, QHBoxLayout, QVBoxLayout, QGridLayout, QStackedLayout, QWidget, QToolBox, QGroupBox
+from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QAction, qApp, QLabel, QLineEdit, QHBoxLayout, QVBoxLayout, QGridLayout, QStackedLayout, QWidget, QToolBox, QGroupBox, QDesktopWidget
 from PyQt5.QtGui import QIcon, QPalette, QColor
 from PyQt5.QtCore import Qt
 from functools import partial
@@ -14,13 +14,12 @@ class serverMenuWindow(QtWidgets.QMainWindow):
 
     def __init__(self):
         QtWidgets.QMainWindow.__init__(self)
-        self.setWindowTitle('Editr')
+        #self.setWindowTitle('Editr')
         self.setFixedSize(450,400)
-        self.setGeometry(600, 350, 600, 500)
+        #self.setGeometry(600, 350, 600, 500)
         self.menu()
-
-        #self.central = QtWidgets.QWidget()
-        #self.setCentralWidget(self.central)
+        self.center()
+        #self.setWindowIcon(QIcon("EditrLogo"))
 
         central = QWidget()
         self.setCentralWidget(central)
@@ -73,6 +72,12 @@ class serverMenuWindow(QtWidgets.QMainWindow):
         #central = QWidget()
         central.setLayout(totalLayout)
         #self.setCentralWidget(central)
+
+    def center(self):
+        frameGm = self.frameGeometry()
+        centerPoint = QDesktopWidget().availableGeometry().center()
+        frameGm.moveCenter(centerPoint)
+        self.move(frameGm.topLeft())
 
 
     def emitObject(self,object):
