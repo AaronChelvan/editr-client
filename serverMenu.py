@@ -1,8 +1,7 @@
 from PyQt5 import QtWidgets, QtCore, QtGui
 from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QAction, qApp, QLabel, QLineEdit, QHBoxLayout, QVBoxLayout, QGridLayout, QStackedLayout, QWidget, QToolBox, QGroupBox, QDesktopWidget
 from PyQt5.QtGui import QIcon, QPalette, QColor
-from PyQt5.QtCore import Qt
-from functools import partial
+from PyQt5.QtCore import QTimer
 import sys, socket
 
 # The menu window which contains:
@@ -14,12 +13,9 @@ class serverMenuWindow(QtWidgets.QMainWindow):
 
     def __init__(self):
         QtWidgets.QMainWindow.__init__(self)
-        #self.setWindowTitle('Editr')
         self.setFixedSize(450,400)
-        #self.setGeometry(600, 350, 600, 500)
         self.menu()
         self.center()
-        #self.setWindowIcon(QIcon("EditrLogo"))
 
         central = QWidget()
         self.setCentralWidget(central)
@@ -32,29 +28,25 @@ class serverMenuWindow(QtWidgets.QMainWindow):
 
         label = QLabel()
         label.setText("IP Address:")
-        #label.move(50, 50)
         label.setFixedSize(60,50)
 
         label2 = QLabel()
         label2.setText("Port:")
-        #label2.move(50, 100)
         label2.setFixedSize(40,50)
 
+        self.setStyleSheet("QLabel {font: 9pt Helvetica}")
+        #label.setStyleSheet()
 
         self.lineEditIP = QLineEdit('')
-        #self.lineEditIP.move(150, 50)
         self.lineEditIP.setFixedSize(100,50)
 
         self.lineEditPort = QLineEdit('')
-        #self.lineEditPort.move(150, 100)
         self.lineEditPort.setFixedSize(100,50)
 
         connectButton = QPushButton('Connect')
-        #connectButton.move(200, 150)
         connectButton.clicked.connect(self.connectToServer)
         connectButton.setFixedSize(120,40)
 
-        #connectionLayout = QHBoxLayout()
         connectionLayout = QGridLayout()
         connectionLayout.addWidget(label,0,0)
         connectionLayout.addWidget(label2,1,0)
@@ -69,9 +61,9 @@ class serverMenuWindow(QtWidgets.QMainWindow):
         totalLayout.addWidget(connectionBox)
         totalLayout.addWidget(self.grid)
 
-        #central = QWidget()
+
         central.setLayout(totalLayout)
-        #self.setCentralWidget(central)
+
 
     def center(self):
         frameGm = self.frameGeometry()
@@ -139,7 +131,7 @@ class serverMenuWindow(QtWidgets.QMainWindow):
         # Check if the port number is valid
         if not port.isdigit():
             self.connectionError(0)
-            print("Invalid port number") # TODO make this an error message that appears in the UI
+            print("Invalid port number")
             return
         
         # Attempt to connect to the server
@@ -157,7 +149,7 @@ class serverMenuWindow(QtWidgets.QMainWindow):
 
     def connectionError(self, errorNum):
         self.error = notificationWindow(self.errorMessages[errorNum])
-        self.error.setGeometry(600,550,100,100)
+        self.error.setFixedSize(130,70)
         self.error.show()
 
 class notificationWindow(QWidget):
@@ -166,6 +158,7 @@ class notificationWindow(QWidget):
 
         self.name = name
         self.initUI()
+        self.setStyleSheet("QLabel {font: 9pt Helvetica}")
 
     def initUI(self):
         notwindow = QLabel(self.name,self)
@@ -177,13 +170,14 @@ class GridLayout(QtWidgets.QGroupBox):
         QtWidgets.QWidget.__init__(self,"Recent Connections", parent=parent)
         self.recentList = []
         self.xCur = 0
-        self.xMax = 5
+        self.xMax = 4
         self.yCur = 0
-        self.yMax = 5
+        self.yMax = 3
         self.win = win
+        self.currentTask = None
+
 
         self.move(50,200)
-        #self.setFixedSize(500,200)
 
         layout = QGridLayout()
         self.layout = layout
@@ -191,6 +185,7 @@ class GridLayout(QtWidgets.QGroupBox):
         self.layout.setRowStretch(2, 4)
 
         self.setLayout(self.layout)
+
 
         try:
 
@@ -205,14 +200,14 @@ class GridLayout(QtWidgets.QGroupBox):
                     split = lines[i].split(":")
                     ip = split[0]
                     port = split[1]
-                    self.addNew(ip,port)
-                    self.recentList.append
+                    new = self.addNew(ip,port)
+                    self.recentList.append(new)
         except FileNotFoundError:
             pass
 
 
     def addNew(self, ip, port):
-        if self.yCur < 4:
+        if self.yCur < self.yMax:
             ySet = self.yCur
             self.yCur += 1
         else:
@@ -220,25 +215,32 @@ class GridLayout(QtWidgets.QGroupBox):
             self.xCur += 1
             ySet = 0
 
-        if self.xCur < 5:
+        if self.xCur < self.xMax:
             push = QPushButton(str(ip) + ":" + str(port))
-            #push.setFixedSize(50,30)
             self.layout.addWidget(push, self.xCur, ySet)
-            new = Savedrecent(str(ip), str(port), self.win)
-            push.clicked.connect(new.connectToServer)
+            new = Savedrecent(str(ip), str(port), self.win, self.getTask, self.setTask)
+            push.clicked.connect(new.schedule)
             self.recentList.append(new)
 
     def returnList(self):
         return self.recentList
 
+    def setTask(self,task):
+        self.currentTask = task
+
+    def getTask(self):
+        return self.currentTask
+
+
 
 class Savedrecent:
-    connectSuccessful = QtCore.pyqtSignal(object)
 
-    def __init__(self, ip, port,win):
+    def __init__(self, ip, port,win, getTask, setTask):
         self.ip = ip
         self.port = port
         self.win = win
+        self.getTask = getTask
+        self.setTask = setTask
 
     def ipAddress(self):
         return self.ip
@@ -247,15 +249,11 @@ class Savedrecent:
         return self.port
 
     def connectToServer(self):
+
         # Get the IP address and port number
         ip = self.ip
         port = self.port
         print("ip = %s, port = %s" % (ip, port))
-
-        # Check if the port number is valid
-        if not port.isdigit():
-            print("Invalid port number")
-            return
 
         # Attempt to connect to the server
         clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -265,13 +263,27 @@ class Savedrecent:
             self.connectionError()
             print("Could not connect")
             return
-
         self.win(clientSocket)
-        # Switch to the text editor window
-        #self.newRecent(ip, port)
-        #self.connectSuccessful.emit(clientSocket)
+
     def connectionError(self):
         self.error = notificationWindow("Connection Failed")
-        self.error.setGeometry(600,550,100,100)
+        self.error.setFixedSize(130,70)
         self.error.show()
+
+
+    def schedule(self):
+        try:
+            task = self.getTask()
+            task.stop()
+        except AttributeError:
+            # No task currently running
+            pass
+
+        timer = QtCore.QTimer()
+        timer.setSingleShot(True)
+        timer.timeout.connect(self.connectToServer)
+        timer.start(10)
+        self.setTask(timer)
+
+
 
