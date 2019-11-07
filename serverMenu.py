@@ -15,7 +15,7 @@ class serverMenuWindow(QtWidgets.QMainWindow):
     def __init__(self):
         QtWidgets.QMainWindow.__init__(self)
         self.setFixedSize(450,400)
-        self.menu()
+        #self.menu()
         self.center()
 
         central = QWidget()
@@ -29,7 +29,7 @@ class serverMenuWindow(QtWidgets.QMainWindow):
 
         label = QLabel()
         label.setText("IP Address:")
-        label.setFixedSize(60,50)
+        label.setFixedSize(100,50)
 
         label2 = QLabel()
         label2.setText("Port:")
@@ -47,6 +47,7 @@ class serverMenuWindow(QtWidgets.QMainWindow):
         connectButton = QPushButton('Connect')
         connectButton.clicked.connect(self.connectToServer)
         connectButton.setFixedSize(120,40)
+        connectButton.setShortcut("RETURN")
 
         connectionLayout = QGridLayout()
         connectionLayout.addWidget(label,0,0)
