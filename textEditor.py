@@ -14,7 +14,7 @@ class textEditorWindow(QMainWindow):
 		self.setGeometry(400, 400, 600, 500)
 		self.setCentralWidget(Textbox(clientSocket, fileName)) # Add a Textbox to the window
 		self.clientSocket = clientSocket
-		closeButton = QPushButton('Save & Close', self)
+		closeButton = QPushButton('Save && Close', self)
 		closeButton.move(450, 450)
 		closeButton.clicked.connect(self.stopEditingFunction)
 	
@@ -52,7 +52,7 @@ class Textbox(QTextEdit):
 			if tag == "replace": # If characters were overwritten
 				sendMessage(self.clientSocket, "remove", i1, i2-i1)
 				sendMessage(self.clientSocket, "write", i1, self.toPlainText()[j1:j2])
-			elif tag == "remove": # If characters were removed
+			elif tag == "delete": # If characters were deleted
 				sendMessage(self.clientSocket, "remove", i1, i2-i1)
 			elif tag == "insert": # If characters were inserted
 				sendMessage(self.clientSocket, "write", i1, self.toPlainText()[j1:j2])
