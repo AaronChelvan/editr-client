@@ -146,23 +146,6 @@ class serverMenuWindow(QtWidgets.QMainWindow):
         self.newRecent(ip, port)
         self.connectSuccessful.emit(clientSocket)
 
-    def connectionError(self, errorNum):
-        self.error = notificationWindow(self.errorMessages[errorNum])
-        self.error.setFixedSize(130,70)
-        self.error.show()
-
-class notificationWindow(QWidget):
-    def __init__(self,name):
-        super().__init__()
-
-        self.name = name
-        self.initUI()
-        self.setStyleSheet("QLabel {font: 9pt Helvetica}")
-
-    def initUI(self):
-        notwindow = QLabel(self.name,self)
-
-
 
 class GridLayout(QtWidgets.QGroupBox):
     def __init__(self, parent,win):
@@ -267,12 +250,6 @@ class Savedrecent:
             showErrorMessage("Failed to connect")
             return
         self.win(clientSocket)
-
-    def connectionError(self):
-        self.error = notificationWindow("Connection Failed")
-        self.error.setFixedSize(130,70)
-        self.error.show()
-
 
     def schedule(self):
         try:
