@@ -4,6 +4,7 @@ from PyQt5.QtGui import QIcon, QPalette, QColor
 from PyQt5.QtCore import Qt
 from functools import partial
 import sys, socket
+from lib import showErrorMessage
 
 # The menu window which contains:
 # - Contains a menu for inputting an IP address and port number
@@ -105,7 +106,7 @@ class serverMenuWindow(QtWidgets.QMainWindow):
 
         # Check if the port number is valid
         if not port.isdigit():
-            print("Invalid port number") # TODO make this an error message that appears in the UI
+            showErrorMessage("Invalid port number")
             return
         
         # Attempt to connect to the server
@@ -113,7 +114,7 @@ class serverMenuWindow(QtWidgets.QMainWindow):
         try:
             clientSocket.connect((ip, int(port)))
         except socket.error:
-            print("Could not connect")
+            showErrorMessage("Failed to connect")
             return
 
         # Switch to the text editor window
@@ -201,7 +202,7 @@ class Savedrecent:
 
         # Check if the port number is valid
         if not port.isdigit():
-            print("Invalid port number")  # TODO make this an error message that appears in the UI
+            showErrorMessage("Invalid port number")
             return
 
         # Attempt to connect to the server
@@ -209,7 +210,7 @@ class Savedrecent:
         try:
             clientSocket.connect((ip, int(port)))
         except socket.error:
-            print("Could not connect")
+            showErrorMessage("Failed to connect")
             return
 
         self.win(clientSocket)
