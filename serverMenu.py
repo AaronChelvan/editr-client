@@ -3,6 +3,7 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QAction, qAp
 from PyQt5.QtGui import QIcon, QPalette, QColor
 from PyQt5.QtCore import QTimer
 import sys, socket
+from lib import showErrorMessage
 
 # The menu window which contains:
 # - Contains a menu for inputting an IP address and port number
@@ -130,8 +131,7 @@ class serverMenuWindow(QtWidgets.QMainWindow):
 
         # Check if the port number is valid
         if not port.isdigit():
-            self.connectionError(0)
-            print("Invalid port number")
+            showErrorMessage("Invalid port number")
             return
         
         # Attempt to connect to the server
@@ -139,8 +139,7 @@ class serverMenuWindow(QtWidgets.QMainWindow):
         try:
             clientSocket.connect((ip, int(port)))
         except socket.error:
-            print("Could not connect")
-            self.connectionError(1)
+            showErrorMessage("Failed to connect")
             return
 
         # Switch to the text editor window
@@ -255,13 +254,17 @@ class Savedrecent:
         port = self.port
         print("ip = %s, port = %s" % (ip, port))
 
+        # Check if the port number is valid
+        if not port.isdigit():
+            showErrorMessage("Invalid port number")
+            return
+
         # Attempt to connect to the server
         clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             clientSocket.connect((ip, int(port)))
         except socket.error:
-            self.connectionError()
-            print("Could not connect")
+            showErrorMessage("Failed to connect")
             return
         self.win(clientSocket)
 

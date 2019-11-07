@@ -1,3 +1,4 @@
+from PyQt5.QtWidgets import QMessageBox
 import json
 
 # Send a message to the server
@@ -48,3 +49,16 @@ def sendMessage(clientSocket, *args):
 			print(response.decode())
 	'''
 	# TODO check that the ack is valid for the request sent
+
+def showErrorMessage(message):
+    errorMessage = QMessageBox()
+    errorMessage.setIcon(QMessageBox.Warning)
+    errorMessage.setText(message)
+    errorMessage.setWindowTitle("Error")
+    errorMessage.exec_()
+
+def showSuccessMessage(message):
+    successMessage = QMessageBox()
+    successMessage.setText(message)
+    successMessage.setWindowTitle("Success")
+    successMessage.exec_()

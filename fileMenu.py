@@ -83,7 +83,7 @@ class fileMenuWindow(QtWidgets.QMainWindow):
 		fileName = self.comboBox.currentText()
 		response = sendMessage(self.clientSocket, "open", fileName)
 		if "Err" in response["OpenResp"]:
-			self.showErrorMessage(response["OpenResp"]["Err"])
+			showErrorMessage(response["OpenResp"]["Err"])
 		else:
 			self.startEditing.emit(self.clientSocket, fileName)
 
@@ -91,9 +91,9 @@ class fileMenuWindow(QtWidgets.QMainWindow):
 		fileName = self.lineEditFileName.text()
 		response = sendMessage(self.clientSocket, "create", fileName)
 		if "Err" in response["CreateResp"]:
-			self.showErrorMessage(response["CreateResp"]["Err"])
+			showErrorMessage(response["CreateResp"]["Err"])
 		else:
-			self.showSuccessMessage("\"%s\" created" % fileName)
+			showSuccessMessage("\"%s\" created" % fileName)
 		self.updateFileList()
 
 	def renameFileHandler(self):
@@ -103,20 +103,20 @@ class fileMenuWindow(QtWidgets.QMainWindow):
 			if newName != '':
 				response = sendMessage(self.clientSocket, "rename", fileName, newName)
 				if "Err" in response["RenameResp"]:
-					self.showErrorMessage(response["RenameResp"]["Err"])
+					showErrorMessage(response["RenameResp"]["Err"])
 				else:
-					self.showSuccessMessage("Renamed \"%s\" to \"%s\"" % (fileName, newName))
+					showSuccessMessage("Renamed \"%s\" to \"%s\"" % (fileName, newName))
 			else:
-				self.showErrorMessage("File name cannot be empty")
+				showErrorMessage("File name cannot be empty")
 		self.updateFileList()
 
 	def deleteFileHandler(self):
 		fileName = self.comboBox.currentText()
 		response = sendMessage(self.clientSocket, "delete", fileName)
 		if "Err" in response["DeleteResp"]:
-			self.showErrorMessage(response["DeleteResp"]["Err"])
+			showErrorMessage(response["DeleteResp"]["Err"])
 		else:
-			self.showSuccessMessage("Deleted \"%s\"" % fileName)
+			showSuccessMessage("Deleted \"%s\"" % fileName)
 		self.updateFileList()
 	
 	# Updates the list of files displayed in the drop-down menu
@@ -146,16 +146,3 @@ class fileMenuWindow(QtWidgets.QMainWindow):
 	def closeConnectionHandler(self):     
 		self.clientSocket.close()
 		self.closeConnection.emit()
-
-	def showErrorMessage(self, message):
-		errorMessage = QMessageBox()
-		errorMessage.setIcon(QMessageBox.Warning)
-		errorMessage.setText(message)
-		errorMessage.setWindowTitle("Error")
-		errorMessage.exec_()
-
-	def showSuccessMessage(self, message):
-		successMessage = QMessageBox()
-		successMessage.setText(message)
-		successMessage.setWindowTitle("Success")
-		successMessage.exec_()
