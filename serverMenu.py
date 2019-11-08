@@ -14,7 +14,7 @@ class serverMenuWindow(QtWidgets.QMainWindow):
 
     def __init__(self):
         QtWidgets.QMainWindow.__init__(self)
-        self.setFixedSize(450,400)
+        self.setFixedSize(450, 400)
         #self.menu()
         self.center()
 
@@ -39,10 +39,10 @@ class serverMenuWindow(QtWidgets.QMainWindow):
         #label.setStyleSheet()
 
         self.lineEditIP = QLineEdit('')
-        self.lineEditIP.setFixedSize(100,50)
+        self.lineEditIP.setFixedSize(120,50)
 
         self.lineEditPort = QLineEdit('')
-        self.lineEditPort.setFixedSize(100,50)
+        self.lineEditPort.setFixedSize(120,50)
 
         connectButton = QPushButton('Connect')
         connectButton.clicked.connect(self.connectToServer)

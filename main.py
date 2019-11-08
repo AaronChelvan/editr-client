@@ -15,24 +15,24 @@ class Controller:
     def show_server_menu(self): # The menu where we select a server
         #if self.window != None:
         #    self.window.close()
-        self.window = serverMenu.serverMenuWindow()
-        self.window.connectSuccessful.connect(self.show_file_menu)
-        self.window.show()
+        self.menu = serverMenu.serverMenuWindow()
+        self.menu.connectSuccessful.connect(self.show_file_menu)
+        self.menu.show()
 
     
     def show_file_menu(self, clientSocket): # The menu where we select a file
-        self.window.close()
+
+        self.menu.close()
         self.window = fileMenu.fileMenuWindow(clientSocket)
         self.window.startEditing.connect(self.show_text_editor)
         self.window.closeConnection.connect(self.show_server_menu)
         self.window.show()
-    
 
     def show_text_editor(self, clientSocket, fileName): # The textbox
-        self.window.close()
-        self.window = textEditor.textEditorWindow(clientSocket, fileName)
-        self.window.stopEditing.connect(self.show_file_menu)
-        self.window.show()
+
+        text = textEditor.textEditorWindow(clientSocket, fileName)
+        self.window.appendTextList(text)
+
 
 # The colour scheme
 def palette():

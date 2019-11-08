@@ -11,8 +11,12 @@ class fileMenuWindow(QtWidgets.QMainWindow):
 	def __init__(self, clientSocket):
 		QMainWindow.__init__(self)
 		self.setWindowTitle('Editr')
-		self.setGeometry(400,400,600,500)
+		self.setFixedSize(600,500)
 		self.clientSocket = clientSocket
+
+		self.textlist = []
+		self.index = 0
+		self.openFiles = []
 
 		# Label for the drop-down menu
 		fileNameLabel = QLabel()
@@ -81,11 +85,14 @@ class fileMenuWindow(QtWidgets.QMainWindow):
 
 	def openFileHandler(self):
 		fileName = self.comboBox.currentText()
-		response = sendMessage(self.clientSocket, "open", fileName)
-		if "Err" in response["OpenResp"]:
-			showErrorMessage(response["OpenResp"]["Err"])
+		if fileName in self.openFiles:
+			showErrorMessage("File is already open!")
 		else:
-			self.startEditing.emit(self.clientSocket, fileName)
+			response = sendMessage(self.clientSocket, "open", fileName)
+			if "Err" in response["OpenResp"]:
+				showErrorMessage(response["OpenResp"]["Err"])
+			else:
+				self.startEditing.emit(self.clientSocket, fileName)
 
 	def createFileHandler(self):
 		fileName = self.lineEditFileName.text()
@@ -98,26 +105,32 @@ class fileMenuWindow(QtWidgets.QMainWindow):
 
 	def renameFileHandler(self):
 		fileName = self.comboBox.currentText()
-		newName, okPressed = QInputDialog.getText(self, "Rename file", "Enter new file name:", QLineEdit.Normal, "")
-		if okPressed: 
-			if newName != '':
-				response = sendMessage(self.clientSocket, "rename", fileName, newName)
-				if "Err" in response["RenameResp"]:
-					showErrorMessage(response["RenameResp"]["Err"])
+		if fileName in self.openFiles:
+			showErrorMessage("Target file is open! Please close it first")
+		else:
+			newName, okPressed = QInputDialog.getText(self, "Rename file", "Enter new file name:", QLineEdit.Normal, "")
+			if okPressed:
+				if newName != '':
+					response = sendMessage(self.clientSocket, "rename", fileName, newName)
+					if "Err" in response["RenameResp"]:
+						showErrorMessage(response["RenameResp"]["Err"])
+					else:
+						showSuccessMessage("Renamed \"%s\" to \"%s\"" % (fileName, newName))
 				else:
-					showSuccessMessage("Renamed \"%s\" to \"%s\"" % (fileName, newName))
-			else:
-				showErrorMessage("File name cannot be empty")
-		self.updateFileList()
+					showErrorMessage("File name cannot be empty")
+			self.updateFileList()
 
 	def deleteFileHandler(self):
 		fileName = self.comboBox.currentText()
-		response = sendMessage(self.clientSocket, "delete", fileName)
-		if "Err" in response["DeleteResp"]:
-			showErrorMessage(response["DeleteResp"]["Err"])
+		if fileName in self.openFiles:
+			showErrorMessage("Target file is open! Please close it first")
 		else:
-			showSuccessMessage("Deleted \"%s\"" % fileName)
-		self.updateFileList()
+			response = sendMessage(self.clientSocket, "delete", fileName)
+			if "Err" in response["DeleteResp"]:
+				showErrorMessage(response["DeleteResp"]["Err"])
+			else:
+				showSuccessMessage("Deleted \"%s\"" % fileName)
+			self.updateFileList()
 	
 	# Updates the list of files displayed in the drop-down menu
 	def updateFileList(self):
@@ -146,3 +159,14 @@ class fileMenuWindow(QtWidgets.QMainWindow):
 	def closeConnectionHandler(self):     
 		self.clientSocket.close()
 		self.closeConnection.emit()
+
+	def appendTextList(self,text):
+		self.textlist.append(text)
+		self.textlist[self.index].stopEditing.connect(text.close)
+		self.textlist[self.index].closing.connect(self.remove_from_list)
+		self.textlist[self.index].show()
+		self.index += 1
+		self.openFiles.append(text.fileName)
+
+	def remove_from_list(self, fileName):
+		self.openFiles.remove(fileName)

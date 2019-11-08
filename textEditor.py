@@ -7,13 +7,14 @@ import json, string, difflib, socket, sys
 # The text editor window
 class textEditorWindow(QMainWindow):
 	stopEditing = pyqtSignal(object)
-
+	closing = pyqtSignal(object)
 	# Constructor
 	def __init__(self, clientSocket, fileName):
 		super(textEditorWindow, self).__init__()
 		self.setGeometry(400, 400, 600, 500)
 		self.setCentralWidget(Textbox(clientSocket, fileName)) # Add a Textbox to the window
 		self.clientSocket = clientSocket
+		self.fileName = fileName
 		closeButton = QPushButton('Save & Close', self)
 		closeButton.move(450, 450)
 		closeButton.clicked.connect(self.stopEditingFunction)
@@ -23,6 +24,11 @@ class textEditorWindow(QMainWindow):
 		sendMessage(self.clientSocket, "save")
 		sendMessage(self.clientSocket, "close")
 		self.stopEditing.emit(self.clientSocket)
+
+	def closeEvent(self, event: QCloseEvent):
+		print("Window {} closed".format(self))
+		self.closing.emit(self.fileName)
+		super().closeEvent(event)
 
 # The textbox where the file contents will be displayed
 class Textbox(QTextEdit):
