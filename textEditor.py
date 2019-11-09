@@ -12,18 +12,59 @@ class textEditorWindow(QMainWindow):
 	def __init__(self, clientSocket, fileName):
 		super(textEditorWindow, self).__init__()
 		self.setGeometry(400, 400, 600, 500)
-		self.setCentralWidget(Textbox(clientSocket, fileName)) # Add a Textbox to the window
+		textbox = Textbox(clientSocket, fileName)
+		self.setCentralWidget(textbox) # Add a Textbox to the window
 		self.clientSocket = clientSocket
+		mainMenu = self.menuBar()
+
+		fileMenu = mainMenu.addMenu('&File')
+		editMenu = mainMenu.addMenu('&Edit')
+
 		
-		saveAct = QAction('&Save && Close', self)
+
+		# =========== Actions =========== #
+		# === File === #
+		saveAct = QAction('&Save and close', self)
 		# saveAct.setShortcuts()
 		saveAct.setStatusTip('Save the current file and close the editor.')
 		saveAct.triggered.connect(self.stopEditingFunction)
-
-		mainMenu = self.menuBar()
-		fileMenu = mainMenu.addMenu('&File')
 		fileMenu.addAction(saveAct)
+
+		# === Edit === #
+		cutAct = QAction('&Cut', self)
+		cutAct.setStatusTip('Cut the current selection')
+		cutAct.triggered.connect(textbox.cut)
+		editMenu.addAction(cutAct)
 		
+		copyAct = QAction('&Copy', self)
+		copyAct.setStatusTip('Copy the current selection')
+		copyAct.triggered.connect(textbox.copy)
+		editMenu.addAction(copyAct)
+		
+		pasteAct = QAction('&Paste', self)
+		pasteAct.setStatusTip('Paste the current selection')
+		pasteAct.triggered.connect(textbox.paste)
+		editMenu.addAction(pasteAct)
+
+		editMenu.addSeparator()
+
+		undoAct = QAction('&Undo', self)
+		undoAct.setStatusTip('Undo the current selection')
+		undoAct.triggered.connect(textbox.undo)
+		editMenu.addAction(undoAct)
+
+		redoAct = QAction('&Redo', self)
+		redoAct.setStatusTip('Redo the current selection')
+		redoAct.triggered.connect(textbox.redo)
+		editMenu.addAction(redoAct)
+
+		editMenu.addSeparator()
+
+		findAct = QAction('&Find', self)
+		editMenu.addAction(findAct)
+
+		replaceAct = QAction('&Replace', self)
+		editMenu.addAction(replaceAct)
 		
 	
 	def stopEditingFunction(self):
@@ -39,7 +80,7 @@ class Textbox(QTextEdit):
 		super(Textbox, self).__init__()
 		self.setFont(QFont('Monospace', 14)) # Set the font
 		self.clientSocket = clientSocket # Save the socket
-
+		
 		# Read the file contents and display it in the textbox
 		response = sendMessage(self.clientSocket, "read", 0, 999)
 		fileContents = response["ReadResp"]["Ok"]
