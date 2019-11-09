@@ -92,14 +92,17 @@ class textEditorWindow(QMainWindow):
 		# fontSizeSelect.currentTextChanged.connect(self.updateFontSizeText)
 
 	def updateFontFamily(self, qfont):
+		global fontName
 		fontName = qfont.family()
 		self.textbox.setFont(QFont(fontName, fontSize))
 
 	def updateFontSizeIndex(self, qsize):
+		global fontSize 
 		fontSize = int(self.fontSizes[qsize])
 		self.textbox.setFont(QFont(fontName, fontSize))
 
 	# def updateFontSizeText(self, newText):
+	#   global fontSize
 	# 	fontSize = int(newText)
 	# 	self.textbox.setFont(QFont(fontName, fontSize))
 
