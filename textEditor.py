@@ -14,9 +14,17 @@ class textEditorWindow(QMainWindow):
 		self.setGeometry(400, 400, 600, 500)
 		self.setCentralWidget(Textbox(clientSocket, fileName)) # Add a Textbox to the window
 		self.clientSocket = clientSocket
-		closeButton = QPushButton('Save && Close', self)
-		closeButton.move(450, 450)
-		closeButton.clicked.connect(self.stopEditingFunction)
+		
+		saveAct = QAction('&Save && Close', self)
+		# saveAct.setShortcuts()
+		saveAct.setStatusTip('Save the current file and close the editor.')
+		saveAct.triggered.connect(self.stopEditingFunction)
+
+		mainMenu = self.menuBar()
+		fileMenu = mainMenu.addMenu('&File')
+		fileMenu.addAction(saveAct)
+		
+		
 	
 	def stopEditingFunction(self):
 		# Save the changes made and close the file
