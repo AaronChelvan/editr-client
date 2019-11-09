@@ -4,28 +4,33 @@ from PyQt5.QtCore import *
 from lib import *
 import json, string, difflib, socket, sys
 
+# TODO: Refactor this into a class
+fontName = 'Lucida Console'
+fontSize = 14
+
 # The text editor window
 class textEditorWindow(QMainWindow):
 	stopEditing = pyqtSignal(object)
 
 	# Constructor
+	# TODO: Refactor constructor, it's way too long :(
 	def __init__(self, clientSocket, fileName):
 		super(textEditorWindow, self).__init__()
 		self.setGeometry(400, 400, 600, 500)
-		textbox = Textbox(clientSocket, fileName)
-		self.setCentralWidget(textbox) # Add a Textbox to the window
+		self.textbox = Textbox(clientSocket, fileName)
+		self.setCentralWidget(self.textbox) # Add a Textbox to the window
 		self.clientSocket = clientSocket
 		mainMenu = self.menuBar()
+		
+		toolbar = QToolBar('Toolbar', self)
+		self.addToolBar(toolbar)
 
 		fileMenu = mainMenu.addMenu('&File')
 		editMenu = mainMenu.addMenu('&Edit')
 
-		
-
 		# =========== Actions =========== #
 		# === File === #
 		saveAct = QAction('&Save and close', self)
-		# saveAct.setShortcuts()
 		saveAct.setStatusTip('Save the current file and close the editor.')
 		saveAct.triggered.connect(self.stopEditingFunction)
 		fileMenu.addAction(saveAct)
@@ -33,29 +38,29 @@ class textEditorWindow(QMainWindow):
 		# === Edit === #
 		cutAct = QAction('&Cut', self)
 		cutAct.setStatusTip('Cut the current selection')
-		cutAct.triggered.connect(textbox.cut)
+		cutAct.triggered.connect(self.textbox.cut)
 		editMenu.addAction(cutAct)
 		
 		copyAct = QAction('&Copy', self)
 		copyAct.setStatusTip('Copy the current selection')
-		copyAct.triggered.connect(textbox.copy)
+		copyAct.triggered.connect(self.textbox.copy)
 		editMenu.addAction(copyAct)
 		
 		pasteAct = QAction('&Paste', self)
 		pasteAct.setStatusTip('Paste the current selection')
-		pasteAct.triggered.connect(textbox.paste)
+		pasteAct.triggered.connect(self.textbox.paste)
 		editMenu.addAction(pasteAct)
 
 		editMenu.addSeparator()
 
 		undoAct = QAction('&Undo', self)
 		undoAct.setStatusTip('Undo the current selection')
-		undoAct.triggered.connect(textbox.undo)
+		undoAct.triggered.connect(self.textbox.undo)
 		editMenu.addAction(undoAct)
 
 		redoAct = QAction('&Redo', self)
 		redoAct.setStatusTip('Redo the current selection')
-		redoAct.triggered.connect(textbox.redo)
+		redoAct.triggered.connect(self.textbox.redo)
 		editMenu.addAction(redoAct)
 
 		editMenu.addSeparator()
@@ -66,7 +71,38 @@ class textEditorWindow(QMainWindow):
 		replaceAct = QAction('&Replace', self)
 		editMenu.addAction(replaceAct)
 		
-	
+		# Toolbar things #
+		fontFamilySelect = QFontComboBox(toolbar)
+		fontFamilySelect.setCurrentFont(QFont(fontName, fontSize))
+		fontFamilySelect.setWritingSystem(QFontDatabase.WritingSystem.Any)
+		# Monospaced fonts only
+		fontFamilySelect.setFontFilters(QFontComboBox.MonospacedFonts)
+		fontFamilySelect.currentFontChanged.connect(self.updateFontFamily)
+
+		self.fontSizes = ['8','9','10','11','12','14','16','18','20','22','24','26','28','36','48','72']
+		fontSizeSelect = QComboBox(toolbar)
+		fontSizeSelect.setSizeAdjustPolicy(QComboBox.AdjustToContents)
+		fontSizeSelect.move(150,0)
+		fontSizeSelect.addItems(self.fontSizes)
+		fontSizeSelect.setCurrentIndex(6)
+		# TODO: Fix the manual text input (it breaks when it is editable and certain control keys are pressed)
+		# fontSizeSelect.setEditable(True)
+		# fontSizeSelect.setValidator(QIntValidator(1,1638))
+		fontSizeSelect.currentIndexChanged.connect(self.updateFontSizeIndex)
+		# fontSizeSelect.currentTextChanged.connect(self.updateFontSizeText)
+
+	def updateFontFamily(self, qfont):
+		fontName = qfont.family()
+		self.textbox.setFont(QFont(fontName, fontSize))
+
+	def updateFontSizeIndex(self, qsize):
+		fontSize = int(self.fontSizes[qsize])
+		self.textbox.setFont(QFont(fontName, fontSize))
+
+	# def updateFontSizeText(self, newText):
+	# 	fontSize = int(newText)
+	# 	self.textbox.setFont(QFont(fontName, fontSize))
+
 	def stopEditingFunction(self):
 		# Save the changes made and close the file
 		sendMessage(self.clientSocket, "save")
@@ -78,7 +114,7 @@ class Textbox(QTextEdit):
 	# Constructor
 	def __init__(self, clientSocket, fileName):
 		super(Textbox, self).__init__()
-		self.setFont(QFont('Monospace', 14)) # Set the font
+		self.setFont(QFont(fontName, fontSize)) # Set the font
 		self.clientSocket = clientSocket # Save the socket
 		
 		# Read the file contents and display it in the textbox
