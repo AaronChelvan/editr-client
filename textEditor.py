@@ -59,7 +59,7 @@ class Textbox(QTextEdit):
 
 		# Start the listener thread
 		global listenerThread
-		listenerThread = threading.Thread(target=listener, args=(self.clientSocket,))
+		listenerThread = threading.Thread(target=self.listener)
 		listenerThread.start()
 
 	# This functions executes everytime the contents of the textbox changes
@@ -79,24 +79,35 @@ class Textbox(QTextEdit):
 
 		self.prevText = self.toPlainText()
 
-# This function executes in a separate thread and constantly checks for updates from the server
-def listener(clientSocket):
-	t = threading.currentThread()
-	decoder = json.JSONDecoder()
-	while getattr(t, "run", True):
-		try:
-			data = clientSocket.recv(1024)
+	# This function executes in a separate thread and constantly checks for updates from the server
+	def listener(self):
+		t = threading.currentThread()
+		decoder = json.JSONDecoder()
+		while getattr(t, "run", True):
+			try:
+				data = self.clientSocket.recv(1024)
 
-			# The client may have received multiple responses, so we need to split them
-			count = 0
-			listObjects = []
-			while count < len(data.decode()):
-				jsonObject = decoder.raw_decode(data.decode()[count:])
-				listObjects.append(jsonObject[0])
-				count += jsonObject[1]
-			for o in listObjects:
-				print("listener received: " + str(o))
-		except socket.error:
-			time.sleep(0.1)
+				# The client may have received multiple responses, so we need to split them
+				count = 0
+				listObjects = []
+				while count < len(data.decode()):
+					jsonObject = decoder.raw_decode(data.decode()[count:])
+					listObjects.append(jsonObject[0])
+					count += jsonObject[1]
+				for o in listObjects:
+					print("listener received: " + str(o))
+					if "UpdateAdd" in o:
+						self.blockSignals(True)
+						updateCursor = self.cursorForPosition(o["UpdateAdd"]["offset"])
+						updateCursor.insertText(bytearray(o["UpdateAdd"]["data"]).decode("utf-8"))
+						self.blockSignals(False)
+					elif "UpdateRemove" in o:
+						self.blockSignals(True)
+						updateCursor = self.cursorForPosition(o["UpdateRemove"]["offset"])
+						for _ in o["UpdateRemove"]["len"]:
+							updateCursor.deleteChar()
+						self.blockSignals(False)
+			except socket.error:
+				time.sleep(0.1)
 
-	print("listener is stopping")
+		print("listener is stopping")
