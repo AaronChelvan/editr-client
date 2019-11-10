@@ -2,7 +2,7 @@ from PyQt5.QtWidgets import QMessageBox
 import json
 
 # Send a message to the server
-def sendMessage(clientSocket, *args):
+def sendMessage(clientSocket, getResponse, *args):
 	message = {}
 	if args[0] == "open":
 		message["OpenReq"] = args[1]
@@ -32,13 +32,15 @@ def sendMessage(clientSocket, *args):
 	print(message)
 	# Convert "message" to a JSON string and send it to the server
 	clientSocket.send(json.dumps(message).encode("utf-8"))
-	# TODO - If the JSON string is greater than 1024 bytes, break it up into multiple messages  
+	# TODO If the JSON string is greater than 1024 bytes, break it up into multiple messages
+	# (only applicable for "write" and "read")  
 
 	# Wait for an ack
-	response = clientSocket.recv(1024)
-	responseDict = json.loads(response.decode())
-	print(responseDict)
-	return responseDict
+	if getResponse == True:
+		response = clientSocket.recv(1024)
+		responseDict = json.loads(response.decode())
+		print(responseDict)
+		return responseDict
 
 	'''
 	while True:
@@ -51,14 +53,14 @@ def sendMessage(clientSocket, *args):
 	# TODO check that the ack is valid for the request sent
 
 def showErrorMessage(message):
-    errorMessage = QMessageBox()
-    errorMessage.setIcon(QMessageBox.Warning)
-    errorMessage.setText(message)
-    errorMessage.setWindowTitle("Error")
-    errorMessage.exec_()
+	errorMessage = QMessageBox()
+	errorMessage.setIcon(QMessageBox.Warning)
+	errorMessage.setText(message)
+	errorMessage.setWindowTitle("Error")
+	errorMessage.exec_()
 
 def showSuccessMessage(message):
-    successMessage = QMessageBox()
-    successMessage.setText(message)
-    successMessage.setWindowTitle("Success")
-    successMessage.exec_()
+	successMessage = QMessageBox()
+	successMessage.setText(message)
+	successMessage.setWindowTitle("Success")
+	successMessage.exec_()
