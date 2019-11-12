@@ -5,8 +5,10 @@ from PyQt5.QtCore import Qt
 from lib import *
 
 class fileMenuWindow(QtWidgets.QMainWindow):
-	startEditing = QtCore.pyqtSignal(object, str) 
+	startEditing = QtCore.pyqtSignal(object, str, object)
 	closeConnection = QtCore.pyqtSignal()
+	##will need to emit everytime update occurs to update list in textbox
+	updateList = QtCore.pyqtSignal(object)
 
 	def __init__(self, clientSocket):
 		QMainWindow.__init__(self)
@@ -92,7 +94,7 @@ class fileMenuWindow(QtWidgets.QMainWindow):
 			if "Err" in response["OpenResp"]:
 				showErrorMessage(response["OpenResp"]["Err"])
 			else:
-				self.startEditing.emit(self.clientSocket, fileName)
+				self.startEditing.emit(self.clientSocket, fileName, self.listFiles)
 
 	def createFileHandler(self):
 		fileName = self.lineEditFileName.text()
@@ -139,15 +141,15 @@ class fileMenuWindow(QtWidgets.QMainWindow):
 		if "Err" in response["FilesListResp"]:
 			self.showErrorMessage(response["FilesListResp"]["Err"])
 			return
-		listFiles = sorted(response["FilesListResp"]["Ok"])
+		self.listFiles = sorted(response["FilesListResp"]["Ok"])
 		
 		# Add the files to the drop-down menu
 		self.comboBox.clear()
-		for file in listFiles:
+		for file in self.listFiles:
 			self.comboBox.addItem(file)
 
 		# If there are no files, disable the "open", "rename", and "delete" buttons
-		if len(listFiles) == 0:
+		if len(self.listFiles) == 0:
 			self.openFileButton.setEnabled(False)
 			self.renameFileButton.setEnabled(False)
 			self.deleteFileButton.setEnabled(False)
@@ -155,6 +157,8 @@ class fileMenuWindow(QtWidgets.QMainWindow):
 			self.openFileButton.setEnabled(True)
 			self.renameFileButton.setEnabled(True)
 			self.deleteFileButton.setEnabled(True)
+
+		self.updateList.emit(self.listFiles)
 
 	def closeConnectionHandler(self):     
 		self.clientSocket.close()
@@ -170,3 +174,9 @@ class fileMenuWindow(QtWidgets.QMainWindow):
 
 	def remove_from_list(self, fileName):
 		self.openFiles.remove(fileName)
+
+	def returnOpenFiles(self):
+		return self.openFiles
+
+	def updateOpenFiles(self, fileName):
+		self.openFiles.append(fileName)

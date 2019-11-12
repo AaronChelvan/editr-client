@@ -26,12 +26,21 @@ class Controller:
         self.window = fileMenu.fileMenuWindow(clientSocket)
         self.window.startEditing.connect(self.show_text_editor)
         self.window.closeConnection.connect(self.show_server_menu)
+        self.window.updateList.connect(self.updateTextList)
         self.window.show()
 
-    def show_text_editor(self, clientSocket, fileName): # The textbox
+    def show_text_editor(self, clientSocket, fileName, curList): # The textbox
 
-        text = textEditor.textEditorWindow(clientSocket, fileName)
+        text = textEditor.textEditorWindow(clientSocket, fileName,self.window.returnOpenFiles, curList)
+        text.updateOpen.connect(self.updateOpenFiles)
         self.window.appendTextList(text)
+
+    def updateTextList(self, listFiles):
+        for object in self.window.textlist:
+            object.setFileList(listFiles)
+
+    def updateOpenFiles(self, fileName):
+        self.window.updateOpenFiles(fileName)
 
 
 # The colour scheme
