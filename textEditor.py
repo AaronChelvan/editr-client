@@ -93,6 +93,7 @@ class Textbox(QTextEdit):
 	def updateTextboxHandler(self, newText):
 		self.blockSignals(True)
 		self.setText(newText)
+		self.prevText = newText
 		self.blockSignals(False)
 
 # This thread constantly checks for updates from the server
