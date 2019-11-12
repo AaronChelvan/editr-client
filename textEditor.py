@@ -38,6 +38,8 @@ class textEditorWindow(QMainWindow):
 
 # The textbox where the file contents will be displayed
 class Textbox(QTextEdit):
+	#updateTextbox = pyqtSignal(str)
+
 	# Constructor
 	def __init__(self, clientSocket, fileName):
 		super(Textbox, self).__init__()
@@ -54,6 +56,10 @@ class Textbox(QTextEdit):
 		self.textChanged.connect(self.textChangedHandler)
 		self.prevText = self.toPlainText() # The content currently in the textbox
 		
+		# Connect the updateTextbox signal
+		#self.updateTextbox.connect(self.updateTextboxHandler)
+		#print(vars(self))
+
 		# Make the socket non-blocking
 		self.clientSocket.setblocking(False)
 
@@ -79,6 +85,11 @@ class Textbox(QTextEdit):
 
 		self.prevText = self.toPlainText()
 
+	#def updateTextboxHandler(self, newText):
+	#	print("in handler")
+	#	self.setText(newText)
+	#	print("handler set textbox to " + newText)
+
 	# This function executes in a separate thread and constantly checks for updates from the server
 	def listener(self):
 		t = threading.currentThread()
@@ -96,16 +107,23 @@ class Textbox(QTextEdit):
 					count += jsonObject[1]
 				for o in listObjects:
 					print("listener received: " + str(o))
-					if "UpdateAdd" in o:
+					if "UpdateMessage" in o:
 						self.blockSignals(True)
-						updateCursor = self.cursorForPosition(o["UpdateAdd"]["offset"])
-						updateCursor.insertText(bytearray(o["UpdateAdd"]["data"]).decode("utf-8"))
-						self.blockSignals(False)
-					elif "UpdateRemove" in o:
-						self.blockSignals(True)
-						updateCursor = self.cursorForPosition(o["UpdateRemove"]["offset"])
-						for _ in o["UpdateRemove"]["len"]:
-							updateCursor.deleteChar()
+						prevText = self.toPlainText()
+						newText = ""
+						if "Add" in o["UpdateMessage"]:
+							offset = o["UpdateMessage"]["Add"]["offset"]
+							dataToAdd = bytearray(o["UpdateMessage"]["Add"]["data"]).decode("utf-8")
+							newText = prevText[:offset] + dataToAdd + prevText[offset:]
+						elif "Remove" in o["UpdateMessage"]:
+							offset = o["UpdateMessage"]["Remove"]["offset"]
+							lenToRemove = o["UpdateMessage"]["Remove"]["len"]
+							newText = prevText[:offset] + prevText[offset+lenToRemove:]
+						#self.setText(newText)
+						print(newText)
+						#print(vars(self))
+						#self.updateTextbox.emit()
+						#print("done emitting")
 						self.blockSignals(False)
 			except socket.error:
 				time.sleep(0.1)
