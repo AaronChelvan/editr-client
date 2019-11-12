@@ -23,8 +23,8 @@ class textEditorWindow(QMainWindow):
 	def stopEditingFunction(self):
 		# Stop the listener thread
 		global listenerThread
-		listenerThread.run = False
-		listenerThread.join()
+		listenerThread.terminate()
+		listenerThread.wait()
 
 		# Enable socket blocking
 		self.clientSocket.setblocking(True)
@@ -38,7 +38,8 @@ class textEditorWindow(QMainWindow):
 
 # The textbox where the file contents will be displayed
 class Textbox(QTextEdit):
-	#updateTextbox = pyqtSignal(str)
+	# This signal gets triggered by the listener thread when an update is received from the server
+	updateTextbox = pyqtSignal(str)
 
 	# Constructor
 	def __init__(self, clientSocket, fileName):
@@ -57,7 +58,7 @@ class Textbox(QTextEdit):
 		self.prevText = self.toPlainText() # The content currently in the textbox
 		
 		# Connect the updateTextbox signal
-		#self.updateTextbox.connect(self.updateTextboxHandler)
+		self.updateTextbox.connect(self.updateTextboxHandler)
 		#print(vars(self))
 
 		# Make the socket non-blocking
@@ -65,7 +66,8 @@ class Textbox(QTextEdit):
 
 		# Start the listener thread
 		global listenerThread
-		listenerThread = threading.Thread(target=self.listener)
+		listenerThread = ListenerThread(self.toPlainText(), self.clientSocket)
+		listenerThread.updateTextbox.connect(self.updateTextboxHandler)
 		listenerThread.start()
 
 	# This functions executes everytime the contents of the textbox changes
@@ -84,17 +86,30 @@ class Textbox(QTextEdit):
 				sendMessage(self.clientSocket, False, "write", i1, self.toPlainText()[j1:j2])
 
 		self.prevText = self.toPlainText()
+		global listenerThread
+		listenerThread.updateTextboxContents(self.toPlainText())
 
-	#def updateTextboxHandler(self, newText):
-	#	print("in handler")
-	#	self.setText(newText)
-	#	print("handler set textbox to " + newText)
+	# This function gets triggered when the listener thread receives an update
+	def updateTextboxHandler(self, newText):
+		self.blockSignals(True)
+		self.setText(newText)
+		self.blockSignals(False)
 
-	# This function executes in a separate thread and constantly checks for updates from the server
-	def listener(self):
-		t = threading.currentThread()
+# This thread constantly checks for updates from the server
+class ListenerThread(QThread):
+	updateTextbox = pyqtSignal(str)
+
+	def __init__(self, textboxContents, clientSocket):
+		super(ListenerThread, self).__init__()
+		self.textboxContents = textboxContents
+		self.clientSocket = clientSocket
+
+	def updateTextboxContents(self, textboxContents):
+		self.textboxContents = textboxContents
+
+	def run(self):
 		decoder = json.JSONDecoder()
-		while getattr(t, "run", True):
+		while True:
 			try:
 				data = self.clientSocket.recv(1024)
 
@@ -108,8 +123,7 @@ class Textbox(QTextEdit):
 				for o in listObjects:
 					print("listener received: " + str(o))
 					if "UpdateMessage" in o:
-						self.blockSignals(True)
-						prevText = self.toPlainText()
+						prevText = self.textboxContents
 						newText = ""
 						if "Add" in o["UpdateMessage"]:
 							offset = o["UpdateMessage"]["Add"]["offset"]
@@ -119,12 +133,8 @@ class Textbox(QTextEdit):
 							offset = o["UpdateMessage"]["Remove"]["offset"]
 							lenToRemove = o["UpdateMessage"]["Remove"]["len"]
 							newText = prevText[:offset] + prevText[offset+lenToRemove:]
-						#self.setText(newText)
-						print(newText)
-						#print(vars(self))
-						#self.updateTextbox.emit()
-						#print("done emitting")
-						self.blockSignals(False)
+						self.updateTextbox.emit(newText) # Signal to the textbox that we have received an update
+						self.textboxContents = newText # Update this thread's copy to the textbox contents
 			except socket.error:
 				time.sleep(0.1)
 
