@@ -166,8 +166,8 @@ class fileMenuWindow(QtWidgets.QMainWindow):
 
 	def appendTextList(self,text):
 		self.textlist.append(text)
-		self.textlist[self.index].stopEditing.connect(text.close)
-		self.textlist[self.index].closing.connect(self.remove_from_list)
+		#self.textlist[self.index].stopEditing.connect(text.close)
+		#self.textlist[self.index].closing.connect(self.remove_from_list)
 		self.textlist[self.index].show()
 		self.index += 1
 		self.openFiles.append(text.fileName)
@@ -180,3 +180,7 @@ class fileMenuWindow(QtWidgets.QMainWindow):
 
 	def updateOpenFiles(self, fileName):
 		self.openFiles.append(fileName)
+
+	def removeOpenFiles(self, fileList):
+		for object in fileList:
+			self.openFiles.remove(object.fileName)

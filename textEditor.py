@@ -6,27 +6,25 @@ import json, string, difflib, socket, sys
 
 # The text editor window
 class textEditorWindow(QMainWindow):
-	stopEditing = pyqtSignal(object)
-	closing = pyqtSignal(object)
+	#stopEditing = pyqtSignal(object) ##not sure if either of these first two do things atm
+	#closing = pyqtSignal(object)
 	updateOpen = pyqtSignal(str)
+	removeOpen = pyqtSignal(object)
 	# Constructor
 	def __init__(self, clientSocket, fileName, openFiles, curList):
 		super(textEditorWindow, self).__init__()
 		self.setGeometry(400, 400, 600, 500)
 		self.textBoxList = []
-		self.text = Textbox(clientSocket, fileName, self.signalEvent)
+		self.text = Textbox(clientSocket, fileName, 0)
+		self.text.stopEditing.connect(self.removeTab)
 		self.textBoxList.append(self.text)
-		self.openFiles = openFiles
+		self.openFiles = openFiles ##is a function
 		self.fileList = curList
 		self.plusPosition = 1
+		self.tabsNextIndex = 2
 
-		#self.setCentralWidget(text) # Add a Textbox to the window
 		self.clientSocket = clientSocket
 		self.fileName = fileName
-		#need to add this button back
-		closeButton = QPushButton('Save & Close', self)
-		closeButton.move(450, 450)
-		closeButton.clicked.connect(self.stopEditingFunction)
 
 		self.tabs = QTabWidget()
 		self.tab1 = QWidget()
@@ -55,8 +53,14 @@ class textEditorWindow(QMainWindow):
 			else:
 
 				self.tabs.removeTab(self.plusPosition)
+				#self.plusPosition = -1
+				self.tabsNextIndex += -1
 				tab = QWidget()
-				text = Textbox(self.clientSocket, fileName, self.signalEvent)
+				text = Textbox(self.clientSocket, fileName, self.tabsNextIndex)
+				self.tabsNextIndex += 1
+				self.plusPosition = self.tabsNextIndex
+				self.tabsNextIndex += 1
+				text.stopEditing.connect(self.removeTab)
 				self.tabs.addTab(tab, fileName)
 				tab.layout = QVBoxLayout(self)
 
@@ -64,7 +68,7 @@ class textEditorWindow(QMainWindow):
 				tab.setLayout(tab.layout)
 				self.textBoxList.append(text)
 				self.addPlusTab()
-				self.plusPosition += 1
+				#self.plusPosition += 1
 
 				self.updateOpen.emit(fileName)
 
@@ -72,7 +76,6 @@ class textEditorWindow(QMainWindow):
 	def addPlusTab(self):
 		tab2 = QWidget()
 		self.tabs.addTab(tab2, "+")
-		# Just make a function for Tabs
 		self.pushButton1 = QPushButton("Add New Connection")
 		self.pushButton1.clicked.connect(self.newTabFunction)
 		tab2.layout = QVBoxLayout(self)
@@ -84,45 +87,70 @@ class textEditorWindow(QMainWindow):
 
 		#self.comboBox.clear()
 		for file in self.fileList:
-				self.comboBox.addItem(file)
+			self.comboBox.addItem(file)
+
+	def removeTab(self, index, text):
+		self.tabs.removeTab(index)
+		self.textBoxList.remove(text)
+		list = []
+		list.append(text)
+		self.removeOpen.emit(list)
+		for object in self.textBoxList:
+			if object.index > index:
+				object.index += -1
+		self.tabsNextIndex += -1
+		self.plusPosition += -1
 
 
-	def stopEditingFunction(self):
-		# Save the changes made and close the file
-		sendMessage(self.clientSocket, "save")
-		sendMessage(self.clientSocket, "close")
-		self.stopEditing.emit(self.clientSocket)
+	#def stopEditingFunction(self):
+	#	# Save the changes made and close the file
+	#	sendMessage(self.clientSocket, "save")
+	#	sendMessage(self.clientSocket, "close")
+	#	self.stopEditing.emit(self.clientSocket)
 
-	def closeEvent(self, event: QCloseEvent):
-		print("Window {} closed".format(self))
-		self.closing.emit(self.fileName)
-		super().closeEvent(event)
-
-	def signalEvent(self, fileName):
-		self.closing.emit(fileName)
 
 	def setFileList(self, fileList):
 		self.fileList = fileList
 
 
+	def closeEvent(self, event: QCloseEvent):
+		print("Window {} closed".format(self))
+		self.removeOpen.emit(self.textBoxList)
+		super().closeEvent(event)
+
 # The textbox where the file contents will be displayed
 class Textbox(QTextEdit):
 	# Constructor
-	def __init__(self, clientSocket,fileName, signalEvent):
+	stopEditing = pyqtSignal(int, object)
+	def __init__(self, clientSocket,fileName, index):
 		super(Textbox, self).__init__()
 		self.setFont(QFont('Monospace', 14)) # Set the font
 		self.clientSocket = clientSocket # Save the socket
-		self.signalEvent = signalEvent
 		self.fileName = fileName
 		# Read the file contents and display it in the textbox
 		response = sendMessage(self.clientSocket, "read", 0, 999)
 		fileContents = response["ReadResp"]["Ok"]
 		fileContents = bytearray(fileContents).decode("utf-8")
 		self.setText(fileContents)
+		self.index = index
 		
 		# Start detecting edits made to the textbox contents
 		self.textChanged.connect(self.textChangedHandler)
 		self.prevText = self.toPlainText() # The content currently in the textbox
+
+		closeButton = QPushButton('Save & Close')
+		closeButton.setFixedSize(150, 50)
+		closeButton.clicked.connect(self.stopEditingFunction)
+
+		hbox = QHBoxLayout()
+		hbox.addStretch(1)
+		hbox.addWidget(closeButton)
+
+		vbox = QVBoxLayout()
+		vbox.addStretch(1)
+		vbox.addLayout(hbox)
+
+		self.setLayout(vbox)
 
 	# This functions executes everytime the contents of the textbox changes
 	def textChangedHandler(self):
@@ -141,7 +169,11 @@ class Textbox(QTextEdit):
 
 		self.prevText = self.toPlainText()
 
-	def closeEvent(self, event: QCloseEvent):
-		print("Window {} closed".format(self))
-		self.signalEvent(self.fileName)
-		super().closeEvent(event)
+	def stopEditingFunction(self):
+		# Save the changes made and close the file
+		sendMessage(self.clientSocket, "save")
+		sendMessage(self.clientSocket, "close")
+		self.stopEditing.emit(self.index, self)
+
+	def getFileName(self):
+		return self.fileName

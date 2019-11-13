@@ -33,6 +33,7 @@ class Controller:
 
         text = textEditor.textEditorWindow(clientSocket, fileName,self.window.returnOpenFiles, curList)
         text.updateOpen.connect(self.updateOpenFiles)
+        text.removeOpen.connect(self.removeOpenFiles)
         self.window.appendTextList(text)
 
     def updateTextList(self, listFiles):
@@ -42,6 +43,8 @@ class Controller:
     def updateOpenFiles(self, fileName):
         self.window.updateOpenFiles(fileName)
 
+    def removeOpenFiles(self,fileNameList):
+        self.window.removeOpenFiles(fileNameList)
 
 # The colour scheme
 def palette():
