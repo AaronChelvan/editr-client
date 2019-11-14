@@ -157,10 +157,6 @@ class Textbox(QTextEdit):
 		self.textChanged.connect(self.textChangedHandler)
 		self.prevText = self.toPlainText() # The content currently in the textbox
 
-		# Connect the updateTextbox signal
-		self.updateTextbox.connect(self.updateTextboxHandler)
-		#print(vars(self))
-
 		closeButton = QPushButton('Save && Close')
 		closeButton.setFixedSize(180, 50)
 		closeButton.clicked.connect(self.stopEditingFunction)
