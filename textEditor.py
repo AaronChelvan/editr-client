@@ -11,20 +11,24 @@ class textEditorWindow(QMainWindow):
 	updateOpen = pyqtSignal(str)
 	removeOpen = pyqtSignal(object)
 	# Constructor
-	def __init__(self, clientSocket, fileName, openFiles, curList):
+	def __init__(self, clientSocket, fileName, openFiles, curList, port):
 		super(textEditorWindow, self).__init__()
 		self.setGeometry(400, 400, 600, 500)
 		self.textBoxList = []
+		self.openFiles = openFiles
+
+		self.port = port
+		self.ip = clientSocket.getsockname()[0]
+		clientSocket = self.createSocket(fileName, False)
+
 		self.text = Textbox(clientSocket, fileName, 0)
 		self.text.stopEditing.connect(self.removeTab)
 		self.textBoxList.append(self.text)
-		self.openFiles = openFiles ##is a function
+		self.fileName = fileName
+
 		self.fileList = curList
 		self.plusPosition = 1
 		self.tabsNextIndex = 2
-
-		self.clientSocket = clientSocket
-		self.fileName = fileName
 
 		self.tabs = QTabWidget()
 		self.tab1 = QWidget()
@@ -43,34 +47,28 @@ class textEditorWindow(QMainWindow):
 
 	def newTabFunction(self):
 		fileName = self.comboBox.currentText()
-		open = self.openFiles()
-		if fileName in open:
-			showErrorMessage("File is already open!")
-		else:
-			response = sendMessage(self.clientSocket, "open", fileName)
-			if "Err" in response["OpenResp"]:
-				showErrorMessage(response["OpenResp"]["Err"])
-			else:
 
-				self.tabs.removeTab(self.plusPosition)
-				#self.plusPosition = -1
-				self.tabsNextIndex += -1
-				tab = QWidget()
-				text = Textbox(self.clientSocket, fileName, self.tabsNextIndex)
-				self.tabsNextIndex += 1
-				self.plusPosition = self.tabsNextIndex
-				self.tabsNextIndex += 1
-				text.stopEditing.connect(self.removeTab)
-				self.tabs.addTab(tab, fileName)
-				tab.layout = QVBoxLayout(self)
+		clientSocket = self.createSocket(fileName, False)
+		if clientSocket is None:
+			return
 
-				tab.layout.addWidget(text)
-				tab.setLayout(tab.layout)
-				self.textBoxList.append(text)
-				self.addPlusTab()
-				#self.plusPosition += 1
+		self.tabs.removeTab(self.plusPosition)
+		self.tabsNextIndex += -1
+		tab = QWidget()
+		text = Textbox(clientSocket, fileName, self.tabsNextIndex)
+		self.tabsNextIndex += 1
+		self.plusPosition = self.tabsNextIndex
+		self.tabsNextIndex += 1
+		text.stopEditing.connect(self.removeTab)
+		self.tabs.addTab(tab, fileName)
+		tab.layout = QVBoxLayout(self)
 
-				self.updateOpen.emit(fileName)
+		tab.layout.addWidget(text)
+		tab.setLayout(tab.layout)
+		self.textBoxList.append(text)
+		self.addPlusTab()
+
+		self.updateOpen.emit(fileName)
 
 
 	def addPlusTab(self):
@@ -101,14 +99,6 @@ class textEditorWindow(QMainWindow):
 		self.tabsNextIndex += -1
 		self.plusPosition += -1
 
-
-	#def stopEditingFunction(self):
-	#	# Save the changes made and close the file
-	#	sendMessage(self.clientSocket, "save")
-	#	sendMessage(self.clientSocket, "close")
-	#	self.stopEditing.emit(self.clientSocket)
-
-
 	def setFileList(self, fileList):
 		self.fileList = fileList
 
@@ -116,7 +106,30 @@ class textEditorWindow(QMainWindow):
 	def closeEvent(self, event: QCloseEvent):
 		print("Window {} closed".format(self))
 		self.removeOpen.emit(self.textBoxList)
+		for object in self.textBoxList:
+			sendMessage(object.clientSocket, "close")
 		super().closeEvent(event)
+
+
+	def createSocket(self, fileName, bool):
+		clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		try:
+			clientSocket.connect((self.ip, self.port))
+			print(clientSocket.getsockname())
+		except socket.error:
+			showErrorMessage("Failed to connect")
+			return None
+		if not bool:
+			open = self.openFiles()
+			if fileName in open:
+				showErrorMessage("File is already open!")
+			else:
+				response = sendMessage(clientSocket, "open", fileName)
+				if "Err" in response["OpenResp"]:
+					showErrorMessage(response["OpenResp"]["Err"])
+					return None
+				else:
+					return clientSocket
 
 # The textbox where the file contents will be displayed
 class Textbox(QTextEdit):
@@ -126,6 +139,7 @@ class Textbox(QTextEdit):
 		super(Textbox, self).__init__()
 		self.setFont(QFont('Monospace', 14)) # Set the font
 		self.clientSocket = clientSocket # Save the socket
+
 		self.fileName = fileName
 		# Read the file contents and display it in the textbox
 		response = sendMessage(self.clientSocket, "read", 0, 999)

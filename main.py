@@ -20,8 +20,8 @@ class Controller:
         self.menu.show()
 
     
-    def show_file_menu(self, clientSocket): # The menu where we select a file
-
+    def show_file_menu(self, clientSocket, port): # The menu where we select a file
+        self.port = port
         self.menu.close()
         self.window = fileMenu.fileMenuWindow(clientSocket)
         self.window.startEditing.connect(self.show_text_editor)
@@ -31,7 +31,7 @@ class Controller:
 
     def show_text_editor(self, clientSocket, fileName, curList): # The textbox
 
-        text = textEditor.textEditorWindow(clientSocket, fileName,self.window.returnOpenFiles, curList)
+        text = textEditor.textEditorWindow(clientSocket, fileName,self.window.returnOpenFiles, curList, self.port)
         text.updateOpen.connect(self.updateOpenFiles)
         text.removeOpen.connect(self.removeOpenFiles)
         self.window.appendTextList(text)
