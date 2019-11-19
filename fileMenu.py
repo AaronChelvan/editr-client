@@ -38,6 +38,9 @@ class fileMenuWindow(QtWidgets.QMainWindow):
 		self.comboBox = QComboBox()
 		self.comboBox.view().setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
 		self.updateFileList()
+		#self.comboBox.addItem("test1")
+		#self.comboBox.addItem("test2")
+		#self.comboBox.addItem("test3")
 		
 		# Text field for entering the name of a file to create
 		self.lineEditFileName = QLineEdit()
@@ -81,7 +84,7 @@ class fileMenuWindow(QtWidgets.QMainWindow):
 
 	def openFileHandler(self):
 		fileName = self.comboBox.currentText()
-		response = sendMessage(self.clientSocket, "open", fileName)
+		response = sendMessage(self.clientSocket, True, "open", fileName)
 		if "Err" in response["OpenResp"]:
 			showErrorMessage(response["OpenResp"]["Err"])
 		else:
@@ -89,7 +92,7 @@ class fileMenuWindow(QtWidgets.QMainWindow):
 
 	def createFileHandler(self):
 		fileName = self.lineEditFileName.text()
-		response = sendMessage(self.clientSocket, "create", fileName)
+		response = sendMessage(self.clientSocket, True, "create", fileName)
 		if "Err" in response["CreateResp"]:
 			showErrorMessage(response["CreateResp"]["Err"])
 		else:
@@ -101,7 +104,7 @@ class fileMenuWindow(QtWidgets.QMainWindow):
 		newName, okPressed = QInputDialog.getText(self, "Rename file", "Enter new file name:", QLineEdit.Normal, "")
 		if okPressed: 
 			if newName != '':
-				response = sendMessage(self.clientSocket, "rename", fileName, newName)
+				response = sendMessage(self.clientSocket, True, "rename", fileName, newName)
 				if "Err" in response["RenameResp"]:
 					showErrorMessage(response["RenameResp"]["Err"])
 				else:
@@ -112,7 +115,7 @@ class fileMenuWindow(QtWidgets.QMainWindow):
 
 	def deleteFileHandler(self):
 		fileName = self.comboBox.currentText()
-		response = sendMessage(self.clientSocket, "delete", fileName)
+		response = sendMessage(self.clientSocket, True, "delete", fileName)
 		if "Err" in response["DeleteResp"]:
 			showErrorMessage(response["DeleteResp"]["Err"])
 		else:
@@ -122,7 +125,7 @@ class fileMenuWindow(QtWidgets.QMainWindow):
 	# Updates the list of files displayed in the drop-down menu
 	def updateFileList(self):
 		# Retrieve the list of files from the server
-		response = sendMessage(self.clientSocket, "getFiles")
+		response = sendMessage(self.clientSocket, True, "getFiles")
 		if "Err" in response["FilesListResp"]:
 			self.showErrorMessage(response["FilesListResp"]["Err"])
 			return
