@@ -2,7 +2,7 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from lib import *
-import json, string, difflib, socket, sys, threading, time
+import json, string, socket, sys, threading, time
 
 listenerThread = None
 
@@ -22,6 +22,9 @@ class textEditorWindow(QMainWindow):
 		self.textbox = Textbox(clientSocket, fileName)
 		self.setCentralWidget(self.textbox) # Add a Textbox to the window
 		self.clientSocket = clientSocket
+		self.configureMenubarAndToolbar()
+
+	def configureMenubarAndToolbar(self):
 		mainMenu = self.menuBar()
 		
 		toolbar = QToolBar('Toolbar', self)
@@ -126,75 +129,62 @@ class textEditorWindow(QMainWindow):
 
 # The textbox where the file contents will be displayed
 class Textbox(QTextEdit):
-	# This signal gets triggered by the listener thread when an update is received from the server
-	updateTextbox = pyqtSignal(str)
-
 	# Constructor
 	def __init__(self, clientSocket, fileName):
 		super(Textbox, self).__init__()
-		self.setFont(QFont(fontName, fontSize)) # Set the font
 		self.clientSocket = clientSocket # Save the socket
 		
 		# Read the file contents and display it in the textbox
 		response = sendMessage(self.clientSocket, True, "read", 0, 999)
 		fileContents = response["ReadResp"]["Ok"]
 		fileContents = bytearray(fileContents).decode("utf-8")
-		self.setText(fileContents)
+
+		# Create a text document object
+		self.textDocument = QTextDocument()
+		self.textDocument.setPlainText(fileContents)
+		self.textDocument.setDefaultFont(QFont(fontName, fontSize)) # Set the font
+		self.setDocument(self.textDocument)
 		
 		# Start detecting edits made to the textbox contents
-		self.textChanged.connect(self.textChangedHandler)
-		self.prevText = self.toPlainText() # The content currently in the textbox
+		self.textDocument.contentsChange.connect(self.contentsChangeHandler)
 		
-		# Connect the updateTextbox signal
-		self.updateTextbox.connect(self.updateTextboxHandler)
-		#print(vars(self))
-
 		# Make the socket non-blocking
 		self.clientSocket.setblocking(False)
 
 		# Start the listener thread
 		global listenerThread
-		listenerThread = ListenerThread(self.toPlainText(), self.clientSocket)
+		listenerThread = ListenerThread(self.clientSocket)
 		listenerThread.updateTextbox.connect(self.updateTextboxHandler)
 		listenerThread.start()
 
 	# This functions executes everytime the contents of the textbox changes
-	def textChangedHandler(self):
-		# Use sequence matcher to find what changes were made to the textbox contents
-		s = difflib.SequenceMatcher(None, self.prevText, self.toPlainText())
-
-		# Iterate through the changes
-		for tag, i1, i2, j1, j2 in s.get_opcodes():
-			if tag == "replace": # If characters were overwritten
-				sendMessage(self.clientSocket, False, "remove", i1, i2-i1)
-				sendMessage(self.clientSocket, False, "write", i1, self.toPlainText()[j1:j2])
-			elif tag == "delete": # If characters were deleted
-				sendMessage(self.clientSocket, False, "remove", i1, i2-i1)
-			elif tag == "insert": # If characters were inserted
-				sendMessage(self.clientSocket, False, "write", i1, self.toPlainText()[j1:j2])
-
-		self.prevText = self.toPlainText()
-		global listenerThread
-		listenerThread.updateTextboxContents(self.toPlainText())
+	def contentsChangeHandler(self, position, charsRemoved, charsAdded):
+		if charsRemoved > 0:
+			sendMessage(self.clientSocket, False, "remove", position, charsRemoved)
+		if charsAdded > 0:
+			sendMessage(self.clientSocket, False, "write", position, self.toPlainText()[position: position+charsAdded])
 
 	# This function gets triggered when the listener thread receives an update
-	def updateTextboxHandler(self, newText):
-		self.blockSignals(True)
-		self.setText(newText)
-		self.prevText = newText
-		self.blockSignals(False)
+	def updateTextboxHandler(self, update):
+		self.textDocument.blockSignals(True)
+		if "Add" in update["UpdateMessage"]:
+			offset = update["UpdateMessage"]["Add"]["offset"]
+			dataToAdd = bytearray(update["UpdateMessage"]["Add"]["data"]).decode("utf-8")
+			newText = self.toPlainText()[:offset] + dataToAdd + self.toPlainText()[offset:]
+		elif "Remove" in update["UpdateMessage"]:
+			offset = update["UpdateMessage"]["Remove"]["offset"]
+			lenToRemove = update["UpdateMessage"]["Remove"]["len"]
+			newText = self.toPlainText()[:offset] + self.toPlainText()[offset+lenToRemove:]
+		self.textDocument.setPlainText(newText)
+		self.textDocument.blockSignals(False)
 
 # This thread constantly checks for updates from the server
 class ListenerThread(QThread):
-	updateTextbox = pyqtSignal(str)
+	updateTextbox = pyqtSignal(object)
 
-	def __init__(self, textboxContents, clientSocket):
+	def __init__(self, clientSocket):
 		super(ListenerThread, self).__init__()
-		self.textboxContents = textboxContents
 		self.clientSocket = clientSocket
-
-	def updateTextboxContents(self, textboxContents):
-		self.textboxContents = textboxContents
 
 	def run(self):
 		decoder = json.JSONDecoder()
@@ -210,20 +200,8 @@ class ListenerThread(QThread):
 					listObjects.append(jsonObject[0])
 					count += jsonObject[1]
 				for o in listObjects:
-					print("listener received: " + str(o))
 					if "UpdateMessage" in o:
-						prevText = self.textboxContents
-						newText = ""
-						if "Add" in o["UpdateMessage"]:
-							offset = o["UpdateMessage"]["Add"]["offset"]
-							dataToAdd = bytearray(o["UpdateMessage"]["Add"]["data"]).decode("utf-8")
-							newText = prevText[:offset] + dataToAdd + prevText[offset:]
-						elif "Remove" in o["UpdateMessage"]:
-							offset = o["UpdateMessage"]["Remove"]["offset"]
-							lenToRemove = o["UpdateMessage"]["Remove"]["len"]
-							newText = prevText[:offset] + prevText[offset+lenToRemove:]
-						self.updateTextbox.emit(newText) # Signal to the textbox that we have received an update
-						self.textboxContents = newText # Update this thread's copy to the textbox contents
+						self.updateTextbox.emit(o) # Signal to the textbox that we have received an update
 			except socket.error:
 				time.sleep(0.1)
 
