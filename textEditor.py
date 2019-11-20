@@ -135,16 +135,24 @@ class Textbox(QTextEdit):
 		self.clientSocket = clientSocket # Save the socket
 		
 		# Read the file contents and display it in the textbox
-		response = sendMessage(self.clientSocket, True, "read", 0, 999)
-		fileContents = response["ReadResp"]["Ok"]
-		fileContents = bytearray(fileContents).decode("utf-8")
+		fileContents = ""
+		readLength = 100
+		i = 0
+		while True:
+			response = sendMessage(self.clientSocket, True, "read", 0 + i*readLength, readLength)
+			fileContentsPart = response["ReadResp"]["Ok"]
+			fileContentsPart = bytearray(fileContentsPart).decode("utf-8")
+			fileContents += fileContentsPart
+			if len(fileContentsPart) < readLength: # If we have reached the end of the file
+				break
+			i += 1
 
 		# Create a text document object
 		self.textDocument = QTextDocument()
 		self.textDocument.setPlainText(fileContents)
 		self.textDocument.setDefaultFont(QFont(fontName, fontSize)) # Set the font
 		self.setDocument(self.textDocument)
-		
+
 		# Start detecting edits made to the textbox contents
 		self.textDocument.contentsChange.connect(self.contentsChangeHandler)
 		
