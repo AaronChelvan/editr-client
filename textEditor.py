@@ -10,6 +10,8 @@ listenerThread = None
 fontName = 'Lucida Console'
 fontSize = 14
 
+BUFFER = 4096 * 10
+
 # The text editor window
 class textEditorWindow(QMainWindow):
 	stopEditing = pyqtSignal(object)
@@ -26,7 +28,7 @@ class textEditorWindow(QMainWindow):
 
 	def configureMenubarAndToolbar(self):
 		mainMenu = self.menuBar()
-		
+
 		toolbar = QToolBar('Toolbar', self)
 		self.addToolBar(toolbar)
 
@@ -45,12 +47,12 @@ class textEditorWindow(QMainWindow):
 		cutAct.setStatusTip('Cut the current selection')
 		cutAct.triggered.connect(self.textbox.cut)
 		editMenu.addAction(cutAct)
-		
+
 		copyAct = QAction('&Copy', self)
 		copyAct.setStatusTip('Copy the current selection')
 		copyAct.triggered.connect(self.textbox.copy)
 		editMenu.addAction(copyAct)
-		
+
 		pasteAct = QAction('&Paste', self)
 		pasteAct.setStatusTip('Paste the current selection')
 		pasteAct.triggered.connect(self.textbox.paste)
@@ -75,7 +77,7 @@ class textEditorWindow(QMainWindow):
 
 		replaceAct = QAction('&Replace', self)
 		editMenu.addAction(replaceAct)
-		
+
 		# Toolbar things #
 		fontFamilySelect = QFontComboBox(toolbar)
 		fontFamilySelect.setCurrentFont(QFont(fontName, fontSize))
@@ -102,7 +104,7 @@ class textEditorWindow(QMainWindow):
 		self.textbox.setFont(QFont(fontName, fontSize))
 
 	def updateFontSizeIndex(self, qsize):
-		global fontSize 
+		global fontSize
 		fontSize = int(self.fontSizes[qsize])
 		self.textbox.setFont(QFont(fontName, fontSize))
 
@@ -133,7 +135,7 @@ class Textbox(QTextEdit):
 	def __init__(self, clientSocket, fileName):
 		super(Textbox, self).__init__()
 		self.clientSocket = clientSocket # Save the socket
-		
+
 		# Read the file contents and display it in the textbox
 		fileContents = ""
 		readLength = 100
@@ -155,7 +157,7 @@ class Textbox(QTextEdit):
 
 		# Start detecting edits made to the textbox contents
 		self.textDocument.contentsChange.connect(self.contentsChangeHandler)
-		
+
 		# Make the socket non-blocking
 		self.clientSocket.setblocking(False)
 
@@ -198,7 +200,7 @@ class ListenerThread(QThread):
 		decoder = json.JSONDecoder()
 		while True:
 			try:
-				data = self.clientSocket.recv(1024)
+				data = self.clientSocket.recv(BUFFER)
 
 				# The client may have received multiple responses, so we need to split them
 				count = 0
