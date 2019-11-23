@@ -10,11 +10,11 @@ from lib import showErrorMessage
 # - A list of recent connections
 
 class serverMenuWindow(QtWidgets.QMainWindow):
-    connectSuccessful = QtCore.pyqtSignal(object)
+    connectSuccessful = QtCore.pyqtSignal(object, int)
 
     def __init__(self):
         QtWidgets.QMainWindow.__init__(self)
-        self.setFixedSize(450,400)
+        self.setFixedSize(450, 400)
         #self.menu()
         self.center()
 
@@ -39,10 +39,10 @@ class serverMenuWindow(QtWidgets.QMainWindow):
         #label.setStyleSheet()
 
         self.lineEditIP = QLineEdit('')
-        self.lineEditIP.setFixedSize(100,50)
+        self.lineEditIP.setFixedSize(120,50)
 
         self.lineEditPort = QLineEdit('')
-        self.lineEditPort.setFixedSize(100,50)
+        self.lineEditPort.setFixedSize(120,50)
 
         connectButton = QPushButton('Connect')
         connectButton.clicked.connect(self.connectToServer)
@@ -74,8 +74,8 @@ class serverMenuWindow(QtWidgets.QMainWindow):
         self.move(frameGm.topLeft())
 
 
-    def emitObject(self,object):
-        self.connectSuccessful.emit(object)
+    def emitObject(self,object, port):
+        self.connectSuccessful.emit(object, port)
 
     def text(self):
         print("main switch")
@@ -147,7 +147,7 @@ class serverMenuWindow(QtWidgets.QMainWindow):
 
         # Switch to the text editor window
         self.newRecent(ip, port)
-        self.connectSuccessful.emit(clientSocket)
+        self.connectSuccessful.emit(clientSocket, int(port))
 
 
 class GridLayout(QtWidgets.QGroupBox):
@@ -252,7 +252,7 @@ class Savedrecent:
         except socket.error:
             showErrorMessage("Failed to connect")
             return
-        self.win(clientSocket)
+        self.win(clientSocket, int(port))
 
     def schedule(self):
         try:
