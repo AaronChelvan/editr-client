@@ -147,7 +147,8 @@ class Textbox(QTextEdit):
 			if len(fileContentsPart) < readLength: # If we have reached the end of the file
 				break
 			i += 1
-		fileContents = bytearray(fileContentsBytes).decode("utf-8")
+		byteOrder = b"\xff\xfe" # UTF-16 byte order
+		fileContents = (byteOrder + bytearray(fileContentsBytes)).decode("utf-16")
 
 		# Create a text document object
 		self.textDocument = QTextDocument()
@@ -173,43 +174,33 @@ class Textbox(QTextEdit):
 	# This functions executes everytime the contents of the textbox changes
 	def contentsChangeHandler(self, charPosition, charsRemoved, charsAdded):
 		print("charPosition = %d, charsRemoved = %d, charsAdded = %d" % (charPosition, charsRemoved, charsAdded))
-		# Convert char position to byte position
-		if charPosition == 0:
-			bytePosition = 0
-		else:
-			charsBefore = self.toPlainText()[:charPosition]
-			bytesBefore = list(bytes(charsBefore, "utf-8"))
-			print("bytes before = ", bytesBefore, " byte position = ", len(bytesBefore))
-
-		#if charsRemoved > 0:
-			#sendMessage(self.clientSocket, False, "remove", charPosition, charsRemoved)
+		
+		# Encode as UTF-16
+		encodedStringUtf16 = list(self.toPlainText().encode("utf-16"))[2:] # [2:] removes the byte order bytes
+		
+		# charPosition, charsRemoved, and charsAdded all need to be multiplied by 2 since
+		# each char is represented by 2 bytes
+		if charsRemoved > 0:
+			sendMessage(self.clientSocket, False, "remove", charPosition*2, charsRemoved*2)
 		if charsAdded > 0:
-			# TODO split this into multiple writes
-			#print("writing")
-			bytesData = list(bytes(self.toPlainText(), "utf-8"))
-			print("%s [num chars = %d, num bytes = %d]" % (self.toPlainText(), len(self.toPlainText()), len(bytesData)))
-			print("chars added = %s" % self.toPlainText()[charPosition: charPosition + charsAdded])
-			#print(list(bytes(self.toPlainText(), "utf-8")))
-			bytesData = list(bytes(self.toPlainText()[charPosition: charPosition + charsAdded], "utf-8"))
-			print("bytes added = ", bytesData)
-			print(self.toPlainText()[:1])
-			print(self.toPlainText()[:3])
-			print(self.toPlainText()[:4])
-			print()
-			#sendMessage(self.clientSocket, False, "write", bytePosition, bytesData)
+			bytesToAdd = encodedStringUtf16[charPosition*2: charPosition*2 + charsAdded*2]
+			sendMessage(self.clientSocket, False, "write", charPosition*2, bytesToAdd)
 
-	# This function gets triggered when the listener thread receives an update
+	# This function gets triggered when the listener thread receives an update from the server
 	def updateTextboxHandler(self, update):
 		self.textDocument.blockSignals(True)
+		byteOrderSize = 2
 		if "Add" in update["UpdateMessage"]:
 			offset = update["UpdateMessage"]["Add"]["offset"]
-			dataToAdd = bytearray(update["UpdateMessage"]["Add"]["data"]).decode("utf-8")
-			newText = self.toPlainText()[:offset] + dataToAdd + self.toPlainText()[offset:]
+			dataToAdd = bytearray(update["UpdateMessage"]["Add"]["data"])
+			encodedText = self.toPlainText().encode("utf-16")
+			newText = encodedText[:offset+byteOrderSize] + dataToAdd + encodedText[offset+byteOrderSize:]
 		elif "Remove" in update["UpdateMessage"]:
 			offset = update["UpdateMessage"]["Remove"]["offset"]
 			lenToRemove = update["UpdateMessage"]["Remove"]["len"]
-			newText = self.toPlainText()[:offset] + self.toPlainText()[offset+lenToRemove:]
-		self.textDocument.setPlainText(newText)
+			encodedText = self.toPlainText().encode("utf-16")
+			newText = encodedText[:offset+byteOrderSize] + encodedText[offset+byteOrderSize+lenToRemove:]
+		self.textDocument.setPlainText(newText.decode("utf-16"))
 		self.textDocument.blockSignals(False)
 
 # This thread constantly checks for updates from the server
