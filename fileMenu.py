@@ -84,7 +84,7 @@ class fileMenuWindow(QtWidgets.QMainWindow):
 
 	def openFileHandler(self):
 		fileName = self.comboBox.currentText()
-		response = sendMessage(self.clientSocket, True, "open", fileName)
+		response = sendMessage(self.clientSocket, True, "open", fileName, "Bob")
 		if "Err" in response["OpenResp"]:
 			showErrorMessage(response["OpenResp"]["Err"])
 		else:

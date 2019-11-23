@@ -162,8 +162,14 @@ class Textbox(QTextEdit):
 		# Start detecting edits made to the textbox contents
 		self.textDocument.contentsChange.connect(self.contentsChangeHandler)
 
+		# Detect when the position of the cursor changes
+		self.cursorPositionChanged.connect(self.cursorPositionChangedHandler)
+
 		# Make the socket non-blocking
 		self.clientSocket.setblocking(False)
+
+		# For sending the server the position of the cursor
+		self.prevCharPosition = 0
 
 		# Start the listener thread
 		global listenerThread
@@ -171,9 +177,64 @@ class Textbox(QTextEdit):
 		listenerThread.updateTextbox.connect(self.updateTextboxHandler)
 		listenerThread.start()
 
+	def cursorPositionChangedHandler(self):
+		cursorPos = self.textCursor().position()
+		print(cursorPos)
+		#print(cursorPos)
+		#self.unHighlightChar(self.prevCursorPos)
+		#self.highlightChar(cursorPos)
+		
+		#self.unHighlightChar(cursorPos)
+		#self.textDocument.blockSignals(True)
+		#self.textCursor().insertText("asd")
+		#self.textDocument.blockSignals(False)
+		#self.setTextBackgroundColor(QColor("black"))
+
+	def highlightChar(self, position):
+		self.textDocument.blockSignals(True)
+		self.blockSignals(True)
+		prevPosition = self.textCursor().position()
+		#if prevPosition == len(self.toPlainText()):
+		#	prevPosition -= 1
+
+		self.textCursor().setPosition(position)
+
+		# Delete the existing char
+		prevChar = self.toPlainText()[position]
+		self.textCursor().deleteChar()
+
+		# Change the background colour
+		self.setTextBackgroundColor(QColor("red"))
+
+		# Put the char back
+		self.textCursor().insertText(prevChar)
+		
+		# Restore the cursor and the background colour
+		self.setTextBackgroundColor(QColor("black"))
+		self.textCursor().setPosition(prevPosition)
+		self.blockSignals(False)
+		self.textDocument.blockSignals(False)
+
+	def unHighlightEverything(self):
+		self.textDocument.blockSignals(True)
+		self.blockSignals(True)
+		self.textDocument.setPlainText(self.textDocument.toPlainText())
+		self.blockSignals(False)
+		self.textDocument.blockSignals(False)
+
+
 	# This functions executes everytime the contents of the textbox changes
 	def contentsChangeHandler(self, charPosition, charsRemoved, charsAdded):
 		print("charPosition = %d, charsRemoved = %d, charsAdded = %d" % (charPosition, charsRemoved, charsAdded))
+
+		cursorDiff = charPosition - self.prevCharPosition
+		self.prevCharPosition = charPosition
+		if cursorDiff != 0:
+			sendMessage(self.clientSocket, False, "moveCursor", cursorDiff)
+
+		#curso
+		#self.unHighlightEverything()
+		#self.highlightChar(cursorPos)
 		
 		# Encode as UTF-16
 		encodedStringUtf16 = list(self.toPlainText().encode("utf-16"))[2:] # [2:] removes the byte order bytes
@@ -181,10 +242,10 @@ class Textbox(QTextEdit):
 		# charPosition, charsRemoved, and charsAdded all need to be multiplied by 2 since
 		# each char is represented by 2 bytes
 		if charsRemoved > 0:
-			sendMessage(self.clientSocket, False, "remove", charPosition*2, charsRemoved*2)
+			sendMessage(self.clientSocket, False, "remove", charsRemoved*2)
 		if charsAdded > 0:
 			bytesToAdd = encodedStringUtf16[charPosition*2: charPosition*2 + charsAdded*2]
-			sendMessage(self.clientSocket, False, "write", charPosition*2, bytesToAdd)
+			sendMessage(self.clientSocket, False, "write", bytesToAdd)
 
 	# This function gets triggered when the listener thread receives an update from the server
 	def updateTextboxHandler(self, update):

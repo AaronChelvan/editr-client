@@ -109,7 +109,10 @@ class serverMenuWindow(QtWidgets.QMainWindow):
 
     def newRecent(self, ip, port):
         check = False
+        print("return list = ", self.grid.returnList())
         for object in self.grid.returnList():
+            if object == None:
+                continue
             ipTest = object.ipAddress()
             portTest = object.portReturn()
             if str(ip) == ipTest and str(port) == portTest:
