@@ -29,6 +29,7 @@ class Controller:
         self.window.updateList.connect(self.updateTextList)
         self.window.show()
 
+
     def show_text_editor(self, clientSocket, fileName, curList): # The textbox
         text = textEditor.textEditorWindow(clientSocket, fileName,self.window.returnOpenFiles, curList, self.port)
         text.updateOpen.connect(self.updateOpenFiles)
