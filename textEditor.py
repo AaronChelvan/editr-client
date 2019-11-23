@@ -23,6 +23,8 @@ class textEditorWindow(QMainWindow):
 		self.connFileMap = {}
 		self.port = port
 		self.ip = clientSocket.getsockname()[0]
+		self.names = []
+		self.onlineIndex = 1
 
 		clientSocket = self.createSocket(fileName, False)
 		if clientSocket is None:
@@ -52,6 +54,46 @@ class textEditorWindow(QMainWindow):
 
 		self.setCentralWidget(self.tabs)
 
+		self.menu()
+
+		self.names.append("David")
+		self.names.append("Aaron")
+		self.names.append("Ben")
+		self.names.append("Tony")
+		self.names.append("Samuel")
+
+		self.docked = QDockWidget("Online Users", self)
+		self.addDockWidget(Qt.LeftDockWidgetArea, self.docked)
+		self.dockedWidget = QWidget(self)
+		self.docked.setWidget(self.dockedWidget)
+
+		fileusers = QGridLayout()
+		i = 0
+		y = 0
+		for x in self.names:
+			label = QLabel(x)
+			fileusers.addWidget(label, i, y)
+			i += 1
+			if i == 2:
+				y+=1
+				i = 0
+
+		onlineBox = QGroupBox()
+		onlineBox.setMaximumHeight(120)
+		onlineBox.setLayout(fileusers)
+		onlineBox.setTitle(fileName)
+
+		self.text.onlineBox = onlineBox
+
+		self.docklayout = QVBoxLayout()
+		self.docklayout.addStretch(1)
+		#self.docklayout.addWidget(onlineBox)
+		self.docklayout.insertWidget(0,onlineBox)
+		self.dockedWidget.setLayout(self.docklayout)
+		self.docked.hide()
+
+
+
 	def createNewTab(self):
 		if len(self.qlwFileSelect.selectedItems()) == 0:
 			return
@@ -76,7 +118,33 @@ class textEditorWindow(QMainWindow):
 		tab.setLayout(tab.layout)
 		self.textBoxList.append(text)
 		self.updateOpen.emit(fileName)
-		
+
+		fileusers = QGridLayout()
+		##Temporary
+
+		i = 0
+		y = 0
+		for x in self.names:
+			label = QLabel(x)
+			fileusers.addWidget(label, i, y)
+			i += 1
+			if i == 2:
+				y += 1
+				i = 0
+
+
+		onlineBox = QGroupBox()
+		onlineBox.setMaximumHeight(120)
+		onlineBox.setLayout(fileusers)
+		onlineBox.setTitle(fileName)
+
+		text.onlineBox = onlineBox
+
+		#self.docklayout.addWidget(onlineBox)
+		self.docklayout.insertWidget(self.onlineIndex, onlineBox)
+		self.onlineIndex += 1
+
+
 	def addPlusTab(self):
 		tabNew = QWidget()
 		self.tabs.addTab(tabNew, "+")
@@ -237,6 +305,60 @@ class textEditorWindow(QMainWindow):
 			else:
 				return clientSocket
 
+	def menu(self):
+		exitAct = QAction(QIcon('exit.png'), '&Exit', self)
+		exitAct.setShortcut('Ctrl+Q')
+		exitAct.setStatusTip('Exit application')
+		exitAct.triggered.connect(qApp.quit)
+
+		self.menubar = self.menuBar()
+		filemenu = self.menubar.addMenu('&File')
+		filemenu.addAction(exitAct)
+
+		##Will be used to add new connections
+		users = self.menubar.addMenu('&Users')
+
+		userAction = QAction('View Online Users', self, checkable=True)
+		userAction.setChecked(False)
+		userAction.triggered.connect(self.toggleOnline)
+
+		users.addAction(userAction)
+
+
+		#self.menubar.addMenu('&Settings')
+
+		#helpmenu = self.menubar.addMenu('&Help')
+		#aboutAct = QAction('&About', self)
+
+		#feedbackAct = QAction('&Feedback', self)
+		#helpAct = QAction('&Help', self)
+
+		#helpmenu.addAction(aboutAct)
+		#helpmenu.addAction(feedbackAct)
+		#helpmenu.addAction(helpAct)
+
+	def toggleOnline(self, state):
+		if state:
+			self.docked.show()
+
+		if not state:
+			self.docked.hide()
+
+	#Does nothing for the second,will need to make this so I can update the online list
+	#Either remake the layout or just remove the labels, but that would need the grid to be rearranged
+	def updateOnline(self, textbox):
+		fileusers = QGridLayout()
+		i = 0
+		y = 0
+		for x in self.names:
+			label = QLabel(x)
+			fileusers.addWidget(label, i, y)
+			i += 1
+			if i == 2:
+				y += 1
+				i = 0
+		textbox.onlineBox.setLayout(fileusers)
+
 # The textbox where the file contents will be displayed
 class Textbox(QTextEdit):
 	# This signal gets triggered by the listener thread when an update is received from the server
@@ -256,6 +378,9 @@ class Textbox(QTextEdit):
 		fileContents = bytearray(fileContents).decode("utf-8")
 		self.setText(fileContents)
 		self.index = index
+
+		#self.onlineWidget = None
+		self.onlineBox = None
 
 		# Start detecting edits made to the textbox contents
 		self.textChanged.connect(self.textChangedHandler)
@@ -325,6 +450,8 @@ class Textbox(QTextEdit):
 		sendMessage(self.clientSocket, False, "close")
 		self.stopEditing.emit(self.index, self)
 
+		self.onlineBox.hide()
+
 	def getFileName(self):
 		return self.fileName
 
@@ -372,4 +499,6 @@ class ListenerThread(QThread):
 				time.sleep(0.1)
 
 		print("listener is stopping")
+
+
 
