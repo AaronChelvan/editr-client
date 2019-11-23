@@ -5,16 +5,15 @@ import json
 def sendMessage(clientSocket, getResponse, *args):
 	message = {}
 	if args[0] == "open":
-		message["OpenReq"] = args[1]
-		message["Name"] = args[2]
+		message["OpenReq"] = {"file":args[1], "name":args[2]}
 	elif args[0] == "close":
 		message = "CloseReq"
 	elif args[0] == "write":
-		message["WriteAtCursorReqData"] = {"data": args[1]}
+		message["WriteAtCursorReq"] = {"data": args[1]}
 	elif args[0] == "read":
 		message["ReadReq"] = {"offset": args[1], "len": args[2]}
 	elif args[0] == "remove":
-		message["RemoveAtCursorReqData"] = {"len": args[1]}
+		message["RemoveAtCursorReq"] = {"len": args[1]}
 	elif args[0] == "save":
 		message = "SaveReq"
 	elif args[0] == "create":
@@ -27,6 +26,8 @@ def sendMessage(clientSocket, getResponse, *args):
 		message = "FilesListReq"
 	elif args[0] == "moveCursor":
 		message["MoveCursor"] = args[1]
+	elif args[0] == "getCursors":
+		message = "GetCursorsReq"
 	else:
 		print("Unknown operation")
 		exit()

@@ -169,7 +169,7 @@ class Textbox(QTextEdit):
 		self.clientSocket.setblocking(False)
 
 		# For sending the server the position of the cursor
-		self.prevCharPosition = 0
+		self.prevCursorPos = 0
 
 		# Start the listener thread
 		global listenerThread
@@ -180,6 +180,12 @@ class Textbox(QTextEdit):
 	def cursorPositionChangedHandler(self):
 		cursorPos = self.textCursor().position()
 		print(cursorPos)
+		cursorDiff = cursorPos - self.prevCursorPos
+		self.prevCursorPos = cursorPos
+		if cursorDiff != 0:
+			sendMessage(self.clientSocket, False, "moveCursor", cursorDiff*2)
+
+		sendMessage(self.clientSocket, False, "getCursors")
 		#print(cursorPos)
 		#self.unHighlightChar(self.prevCursorPos)
 		#self.highlightChar(cursorPos)
@@ -226,11 +232,6 @@ class Textbox(QTextEdit):
 	# This functions executes everytime the contents of the textbox changes
 	def contentsChangeHandler(self, charPosition, charsRemoved, charsAdded):
 		print("charPosition = %d, charsRemoved = %d, charsAdded = %d" % (charPosition, charsRemoved, charsAdded))
-
-		cursorDiff = charPosition - self.prevCharPosition
-		self.prevCharPosition = charPosition
-		if cursorDiff != 0:
-			sendMessage(self.clientSocket, False, "moveCursor", cursorDiff)
 
 		#curso
 		#self.unHighlightEverything()
