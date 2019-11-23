@@ -10,7 +10,7 @@ listenerThread = None
 fontName = 'Lucida Console'
 fontSize = 14
 
-BUFFER = 4096 * 10
+BUFFER_SIZE = 4096 * 10
 
 # The text editor window
 class textEditorWindow(QMainWindow):
@@ -137,23 +137,26 @@ class Textbox(QTextEdit):
 		self.clientSocket = clientSocket # Save the socket
 
 		# Read the file contents and display it in the textbox
-		fileContents = ""
+		fileContentsBytes = []
 		readLength = 100
 		i = 0
 		while True:
 			response = sendMessage(self.clientSocket, True, "read", 0 + i*readLength, readLength)
 			fileContentsPart = response["ReadResp"]["Ok"]
-			fileContentsPart = bytearray(fileContentsPart).decode("utf-8")
-			fileContents += fileContentsPart
+			fileContentsBytes += fileContentsPart
 			if len(fileContentsPart) < readLength: # If we have reached the end of the file
 				break
 			i += 1
+		fileContents = bytearray(fileContentsBytes).decode("utf-8")
 
 		# Create a text document object
 		self.textDocument = QTextDocument()
 		self.textDocument.setPlainText(fileContents)
 		self.textDocument.setDefaultFont(QFont(fontName, fontSize)) # Set the font
 		self.setDocument(self.textDocument)
+
+		# Do not accept rich text
+		self.setAcceptRichText(False)
 
 		# Start detecting edits made to the textbox contents
 		self.textDocument.contentsChange.connect(self.contentsChangeHandler)
@@ -168,11 +171,32 @@ class Textbox(QTextEdit):
 		listenerThread.start()
 
 	# This functions executes everytime the contents of the textbox changes
-	def contentsChangeHandler(self, position, charsRemoved, charsAdded):
-		if charsRemoved > 0:
-			sendMessage(self.clientSocket, False, "remove", position, charsRemoved)
+	def contentsChangeHandler(self, charPosition, charsRemoved, charsAdded):
+		print("charPosition = %d, charsRemoved = %d, charsAdded = %d" % (charPosition, charsRemoved, charsAdded))
+		# Convert char position to byte position
+		if charPosition == 0:
+			bytePosition = 0
+		else:
+			charsBefore = self.toPlainText()[:charPosition]
+			bytesBefore = list(bytes(charsBefore, "utf-8"))
+			print("bytes before = ", bytesBefore, " byte position = ", len(bytesBefore))
+
+		#if charsRemoved > 0:
+			#sendMessage(self.clientSocket, False, "remove", charPosition, charsRemoved)
 		if charsAdded > 0:
-			sendMessage(self.clientSocket, False, "write", position, self.toPlainText()[position: position+charsAdded])
+			# TODO split this into multiple writes
+			#print("writing")
+			bytesData = list(bytes(self.toPlainText(), "utf-8"))
+			print("%s [num chars = %d, num bytes = %d]" % (self.toPlainText(), len(self.toPlainText()), len(bytesData)))
+			print("chars added = %s" % self.toPlainText()[charPosition: charPosition + charsAdded])
+			#print(list(bytes(self.toPlainText(), "utf-8")))
+			bytesData = list(bytes(self.toPlainText()[charPosition: charPosition + charsAdded], "utf-8"))
+			print("bytes added = ", bytesData)
+			print(self.toPlainText()[:1])
+			print(self.toPlainText()[:3])
+			print(self.toPlainText()[:4])
+			print()
+			#sendMessage(self.clientSocket, False, "write", bytePosition, bytesData)
 
 	# This function gets triggered when the listener thread receives an update
 	def updateTextboxHandler(self, update):
@@ -200,7 +224,7 @@ class ListenerThread(QThread):
 		decoder = json.JSONDecoder()
 		while True:
 			try:
-				data = self.clientSocket.recv(BUFFER)
+				data = self.clientSocket.recv(BUFFER_SIZE)
 
 				# The client may have received multiple responses, so we need to split them
 				count = 0
