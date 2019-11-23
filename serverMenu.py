@@ -110,6 +110,8 @@ class serverMenuWindow(QtWidgets.QMainWindow):
     def newRecent(self, ip, port):
         check = False
         for object in self.grid.returnList():
+            if object == None:
+                continue
             ipTest = object.ipAddress()
             portTest = object.portReturn()
             if str(ip) == ipTest and str(port) == portTest:
@@ -134,7 +136,7 @@ class serverMenuWindow(QtWidgets.QMainWindow):
         if not port.isdigit():
             showErrorMessage("Invalid port number")
             return
-        
+
         # Attempt to connect to the server
         clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
