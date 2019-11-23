@@ -36,9 +36,9 @@ class textEditorWindow(QMainWindow):
 		if clientSocket is None:
 			self.close()
 
-		self.text = Textbox(clientSocket, fileName, 0)
-		self.text.stopEditing.connect(self.removeTab)
-		self.textBoxList.append(self.text)
+		text = Textbox(clientSocket, fileName, 0)
+		text.stopEditing.connect(self.removeTab)
+		self.textBoxList.append(text)
 		self.fileName = fileName
 
 		self.fileList = curList
@@ -49,13 +49,14 @@ class textEditorWindow(QMainWindow):
 		self.tab1 = QWidget()
 
 		self.tabs.resize(300,200)
-
+		self.tabs.setTabsClosable(True)
 		self.tabs.addTab(self.tab1, fileName)
 		self.addPlusTab()
 		self.layout = QVBoxLayout(self)
 		self.tab1.layout = QVBoxLayout(self)
-
-		self.tab1.layout.addWidget(self.text)
+		self.tabs.tabBar().setTabsClosable(True)
+		self.tabs.tabBar().tabCloseRequested.connect(self.closeRequestedTab)
+		self.tab1.layout.addWidget(text)
 		self.tab1.setLayout(self.tab1.layout)
 
 		self.setCentralWidget(self.tabs)
@@ -89,88 +90,96 @@ class textEditorWindow(QMainWindow):
 		onlineBox.setLayout(fileusers)
 		onlineBox.setTitle(fileName)
 
-		self.text.onlineBox = onlineBox
+		text.onlineBox = onlineBox
 
 		self.docklayout = QVBoxLayout()
 		self.docklayout.addStretch(1)
-		#self.docklayout.addWidget(onlineBox)
 		self.docklayout.insertWidget(0,onlineBox)
 		self.dockedWidget.setLayout(self.docklayout)
 		self.docked.hide()
-		self.configureMenubarAndToolbar()
+	# 	self.configureMenubarAndToolbar()
 
-	# TODO: Refactor constructor, it's way too long :(
-	def configureMenubarAndToolbar(self):
-		mainMenu = self.menuBar()
+	# # TODO: Refactor constructor, it's way too long :(
+	# def configureMenubarAndToolbar(self):
+	# 	mainMenu = self.menuBar()
 
-		toolbar = QToolBar('Toolbar', self)
-		self.addToolBar(toolbar)
+	# 	toolbar = QToolBar('Toolbar', self)
+	# 	self.addToolBar(toolbar)
 
-		fileMenu = mainMenu.addMenu('&File')
-		editMenu = mainMenu.addMenu('&Edit')
+	# 	fileMenu = mainMenu.addMenu('&File')
+	# 	editMenu = mainMenu.addMenu('&Edit')
 
-		# =========== Actions =========== #
-		# === File === #
-		saveAct = QAction('&Save and close', self)
-		saveAct.setStatusTip('Save the current file and close the editor.')
-		saveAct.triggered.connect(self.stopEditingFunction)
-		fileMenu.addAction(saveAct)
+	# 	# =========== Actions =========== #
+	# 	# === File === #
+	# 	saveAct = QAction('&Save and close', self)
+	# 	saveAct.setStatusTip('Save the current file andstopEditingFunction close the editor.')
+	# 	# saveAct.triggered.connect(self.stopEditingFunction)
+	# 	fileMenu.addAction(saveAct)
 
-		# === Edit === #
-		cutAct = QAction('&Cut', self)
-		cutAct.setStatusTip('Cut the current selection')
-		cutAct.triggered.connect(self.textbox.cut)
-		editMenu.addAction(cutAct)
+	# 	# === Edit === #
+	# 	cutAct = QAction('&Cut', self)
+	# 	cutAct.setStatusTip('Cut the current selection')
+	# 	cutAct.triggered.connect(self.textbox.cut)
+	# 	editMenu.addAction(cutAct)
 
-		copyAct = QAction('&Copy', self)
-		copyAct.setStatusTip('Copy the current selection')
-		copyAct.triggered.connect(self.textbox.copy)
-		editMenu.addAction(copyAct)
+	# 	copyAct = QAction('&Copy', self)
+	# 	copyAct.setStatusTip('Copy the current selection')
+	# 	copyAct.triggered.connect(self.textbox.copy)
+	# 	editMenu.addAction(copyAct)
 
-		pasteAct = QAction('&Paste', self)
-		pasteAct.setStatusTip('Paste the current selection')
-		pasteAct.triggered.connect(self.textbox.paste)
-		editMenu.addAction(pasteAct)
+	# 	pasteAct = QAction('&Paste', self)
+	# 	pasteAct.setStatusTip('Paste the current selection')
+	# 	pasteAct.triggered.connect(self.textbox.paste)
+	# 	editMenu.addAction(pasteAct)
 
-		editMenu.addSeparator()
+	# 	editMenu.addSeparator()
 
-		undoAct = QAction('&Undo', self)
-		undoAct.setStatusTip('Undo the current selection')
-		undoAct.triggered.connect(self.textbox.undo)
-		editMenu.addAction(undoAct)
+	# 	undoAct = QAction('&Undo', self)
+	# 	undoAct.setStatusTip('Undo the current selection')
+	# 	undoAct.triggered.connect(self.textbox.undo)
+	# 	editMenu.addAction(undoAct)
 
-		redoAct = QAction('&Redo', self)
-		redoAct.setStatusTip('Redo the current selection')
-		redoAct.triggered.connect(self.textbox.redo)
-		editMenu.addAction(redoAct)
+	# 	redoAct = QAction('&Redo', self)
+	# 	redoAct.setStatusTip('Redo the current selection')
+	# 	redoAct.triggered.connect(self.textbox.redo)
+	# 	editMenu.addAction(redoAct)
 
-		editMenu.addSeparator()
+	# 	editMenu.addSeparator()
 
-		findAct = QAction('&Find', self)
-		editMenu.addAction(findAct)
+	# 	findAct = QAction('&Find', self)
+	# 	editMenu.addAction(findAct)
 
-		replaceAct = QAction('&Replace', self)
-		editMenu.addAction(replaceAct)
+	# 	replaceAct = QAction('&Replace', self)
+	# 	editMenu.addAction(replaceAct)
 
-		# Toolbar things #
-		fontFamilySelect = QFontComboBox(toolbar)
-		fontFamilySelect.setCurrentFont(QFont(fontName, fontSize))
-		fontFamilySelect.setWritingSystem(QFontDatabase.WritingSystem.Any)
-		# Monospaced fonts only
-		fontFamilySelect.setFontFilters(QFontComboBox.MonospacedFonts)
-		fontFamilySelect.currentFontChanged.connect(self.updateFontFamily)
+	# 	# Toolbar things #
+	# 	fontFamilySelect = QFontComboBox(toolbar)
+	# 	fontFamilySelect.setCurrentFont(QFont(fontName, fontSize))
+	# 	fontFamilySelect.setWritingSystem(QFontDatabase.WritingSystem.Any)
+	# 	# Monospaced fonts only
+	# 	fontFamilySelect.setFontFilters(QFontComboBox.MonospacedFonts)
+	# 	fontFamilySelect.currentFontChanged.connect(self.updateFontFamily)
 
-		self.fontSizes = ['8','9','10','11','12','14','16','18','20','22','24','26','28','36','48','72']
-		fontSizeSelect = QComboBox(toolbar)
-		fontSizeSelect.setSizeAdjustPolicy(QComboBox.AdjustToContents)
-		fontSizeSelect.move(150,0)
-		fontSizeSelect.addItems(self.fontSizes)
-		fontSizeSelect.setCurrentIndex(6)
-		# TODO: Fix the manual text input (it breaks when it is editable and certain control keys are pressed)
-		# fontSizeSelect.setEditable(True)
-		# fontSizeSelect.setValidator(QIntValidator(1,1638))
-		fontSizeSelect.currentIndexChanged.connect(self.updateFontSizeIndex)
-		# fontSizeSelect.currentTextChanged.connect(self.updateFontSizeText)
+	# 	self.fontSizes = ['8','9','10','11','12','14','16','18','20','22','24','26','28','36','48','72']
+	# 	fontSizeSelect = QComboBox(toolbar)
+	# 	fontSizeSelect.setSizeAdjustPolicy(QComboBox.AdjustToContents)
+	# 	fontSizeSelect.move(150,0)
+	# 	fontSizeSelect.addItems(self.fontSizes)
+	# 	fontSizeSelect.setCurrentIndex(6)
+	# 	# TODO: Fix the manual text input (it breaks when it is editable and certain control keys are pressed)
+	# 	# fontSizeSelect.setEditable(True)
+	# 	# fontSizeSelect.setValidator(QIntValidator(1,1638))
+	# 	fontSizeSelect.currentIndexChanged.connect(self.updateFontSizeIndex)
+	# 	# fontSizeSelect.currentTextChanged.connect(self.updateFontSizeText)
+
+	def closeRequestedTab(self, index):
+		childrenList = self.tabs.widget(index).children()
+		textBox = QWidget()
+		for name in childrenList:
+			if name.metaObject().className() == "Textbox":
+				textBox = name
+		textBox.stopEditingFunction(index)
+
 
 	def updateFontFamily(self, qfont):
 		global fontName
@@ -203,9 +212,10 @@ class textEditorWindow(QMainWindow):
 		tab = QWidget()
 		text = Textbox(clientSocket, fileName, self.tabsNextIndex)
 		self.tabsNextIndex += 1
-		
+
 		text.stopEditing.connect(self.removeTab)
 		self.tabs.addTab(tab, ip+":"+port+" "+fileName)
+		# self.tabs.tabBar().tabCloseRequested.connect(text.stopEditingFunction)
 		tab.layout = QVBoxLayout(self)
 		self.tabs.tabBar().moveTab(self.tabsNextIndex - 2, self.tabsNextIndex-1)
 		tab.layout.addWidget(text)
@@ -345,11 +355,7 @@ class textEditorWindow(QMainWindow):
 		list = []
 		list.append(text)
 		self.removeOpen.emit(list)
-		for object in self.textBoxList:
-			if object.index > index:
-				object.index += -1
 		self.tabsNextIndex += -1
-		self.plusPosition += -1
 
 	def setFileList(self, fileList):
 		self.fileList = fileList
@@ -514,7 +520,7 @@ class Textbox(QTextEdit):
 		self.textDocument.setPlainText(newText)
 		self.textDocument.blockSignals(False)
 
-	def stopEditingFunction(self):
+	def stopEditingFunction(self,index):
 		# Stop the listener thread
 		global listenerThread
 		listenerThread.terminate()
@@ -526,7 +532,7 @@ class Textbox(QTextEdit):
 		# Save the changes made and close the file
 		sendMessage(self.clientSocket, True, "save")
 		sendMessage(self.clientSocket, False, "close")
-		self.stopEditing.emit(self.index, self)
+		self.stopEditing.emit(index, self)
 
 		self.onlineBox.hide()
 
