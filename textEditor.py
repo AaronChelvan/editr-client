@@ -32,7 +32,7 @@ class textEditorWindow(QtWidgets.QMainWindow):
 		self.connFileMap = {}
 		self.names = []
 		self.onlineIndex = 1
-		self.nickname = "Applejuice"
+		self.username = "Applejuice"
 
 		self.fileList = []
 		self.tabsNextIndex = 1
@@ -49,12 +49,6 @@ class textEditorWindow(QtWidgets.QMainWindow):
 		self.setCentralWidget(self.tabs)
 
 		self.menu()
-
-		# self.names.append("David")
-		# self.names.append("Aaron")
-		# self.names.append("Ben")
-		# self.names.append("Tony")
-		# self.names.append("Samuel")
 
 		self.docked = QDockWidget("Online Users", self)
 		self.addDockWidget(Qt.LeftDockWidgetArea, self.docked)
@@ -493,18 +487,18 @@ class textEditorWindow(QtWidgets.QMainWindow):
 
 		users.addAction(userAction)
 
+	def setName(self):
+		if len(self.openFiles) > 0:
+			showErrorMessage("Cant set name when files opened")
+			return
 
-		#self.menubar.addMenu('&Settings')
+		username, okPressed = QInputDialog.getText(self, "", "Set Username", QLineEdit.Normal, "")
 
-		#helpmenu = self.menubar.addMenu('&Help')
-		#aboutAct = QAction('&About', self)
+		if okPressed and username != "":
+			self.username = username
 
-		#feedbackAct = QAction('&Feedback', self)
-		#helpAct = QAction('&Help', self)
-
-		#helpmenu.addAction(aboutAct)
-		#helpmenu.addAction(feedbackAct)
-		#helpmenu.addAction(helpAct)
+		if okPressed and username == "":
+			showErrorMessage("Name cannot be blank")
 
 	def toggleOnline(self, state):
 		if state:
