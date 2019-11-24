@@ -1,6 +1,5 @@
 import sys
 import textEditor
-import fileMenu
 from PyQt5 import QtWidgets, QtCore, QtGui
 from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QAction, qApp, QLabel, QLineEdit, QHBoxLayout, QVBoxLayout, QGridLayout, QStackedLayout, QWidget, QToolBox
 from PyQt5.QtGui import QIcon, QPalette, QColor
@@ -14,24 +13,25 @@ class Controller:
     def show_file_menu(self,): # The menu where we select a file
         self.window = fileMenu.fileMenuWindow()
         self.window.startEditing.connect(self.show_text_editor)
-        self.window.updateList.connect(self.updateTextList)
         self.window.show()
 
     def show_text_editor(self): # The textbox
-        text = textEditor.textEditorWindow()
-        text.updateOpen.connect(self.updateOpenFiles)
-        text.removeOpen.connect(self.removeOpenFiles)
-        self.window.appendTextList(text)
+        self.text = textEditor.textEditorWindow()
+        self.text.show()
+        # text.updateOpen.connect(self.updateOpenFiles)
+        # text.removeOpen.connect(self.removeOpenFiles)
+        # self.window.appendTextList(text)
+        
 
-    def updateTextList(self, listFiles):
-        for object in self.window.textlist:
-            object.setFileList(listFiles)
+    # def updateTextList(self, listFiles):
+    #     for object in self.window.textlist:
+    #         object.setFileList(listFiles)
 
-    def updateOpenFiles(self, fileName):
-        self.window.updateOpenFiles(fileName)
+    # def updateOpenFiles(self, fileName):
+    #     self.text.updateOpenFiles(fileName)
 
-    def removeOpenFiles(self,fileNameList):
-        self.window.removeOpenFiles(fileNameList)
+    # def removeOpenFiles(self,fileNameList):
+    #     self.text.removeOpenFiles(fileNameList)
 
 # The colour scheme
 def palette():
@@ -53,7 +53,7 @@ def main():
     app.setPalette(palette())
     app.setWindowIcon(QIcon("EditrLogo"))
     controller = Controller()
-    controller.show_file_menu()
+    controller.show_text_editor()
     sys.exit(app.exec_())
 
 
