@@ -85,7 +85,7 @@ class textEditorWindow(QMainWindow):
 		fontName = qfont.family()
 		if len(self.openFiles) > 0:
 			self.updateFonts()
-		
+
 	def updateFontSizeIndex(self, qsize):
 		global fontSize
 		fontSize = int(self.fontSizes[qsize])
@@ -251,7 +251,7 @@ class textEditorWindow(QMainWindow):
 		self.connFileMap.remove(self.qlwConnSelect.currentItem().text())
 		self.qlwConnSelect.takeItem(self.qlwConnSelect.currentRow())
 		self.qlwFileSelect.clear()
-	
+
 	# Called when a new connection is selected
 	def refreshFileList(self, ip="", port=""):
 		if ip == False:
@@ -410,7 +410,7 @@ class textEditorWindow(QMainWindow):
 		self.editMenu = menuBar.addMenu('&Edit')
 		nameMenu = menuBar.addMenu('&Name')
 		users = menuBar.addMenu('&Users')
-		
+
 		openAct = QAction('&Open', self)
 		openAct.setShortcut('Ctrl+O')
 		openAct.triggered.connect(self.showOpenDialog)
@@ -466,7 +466,7 @@ class textEditorWindow(QMainWindow):
 		nameMenu.addAction(nameAction)
 
 		##Will be used to add new connections
-		
+
 		userAction = QAction('View Online Users', self, checkable=True)
 		userAction.setChecked(False)
 		userAction.triggered.connect(self.toggleOnline)
@@ -671,6 +671,7 @@ class Textbox(QTextEdit):
 		self.textDocument.blockSignals(False)
 
 	def updateCursorsHandler(self, update):
+		self.prevCursorPos = update["GetCursorsResp"]["Ok"][0]
 		userlist = []
 		self.unHighlightEverything()
 		for cursor in update["GetCursorsResp"]["Ok"][1]:
@@ -685,10 +686,10 @@ class Textbox(QTextEdit):
 	# This functions executes everytime the contents of the textbox changes
 	def contentsChangeHandler(self, charPosition, charsRemoved, charsAdded):
 		print("charPosition = %d, charsRemoved = %d, charsAdded = %d" % (charPosition, charsRemoved, charsAdded))
-		
+
 		# Encode as UTF-16
 		encodedStringUtf16 = list(self.toPlainText().encode("utf-16"))[2:] # [2:] removes the byte order bytes
-		
+
 		# Move the cursor to charPosition
 		cursorDiff = charPosition*2 - self.prevCursorPos
 		print("cursorDiff = ", cursorDiff, " charPosition = ", charPosition, " self.prevCursorPos = ", self.prevCursorPos)
