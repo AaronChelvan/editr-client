@@ -26,7 +26,8 @@ class textEditorWindow(QMainWindow):
 		self.setGeometry(400, 400, 600, 500)
 		self.textBoxList = []
 		self.openFiles = []
-
+		self.openDialog = QDialog(parent=self)
+		self.openDialog.setModal(True)
 		self.connFileMap = {}
 		self.onlineIndex = 0
 		self.username = None
@@ -37,7 +38,7 @@ class textEditorWindow(QMainWindow):
 
 		self.tabs.resize(300,200)
 		self.tabs.setTabsClosable(True)
-		self.addPlusTab()
+		self.initOpenDialog()
 		self.layout = QVBoxLayout(self)
 		self.tabs.tabBar().setTabsClosable(True)
 		self.tabs.tabBar().tabCloseRequested.connect(self.closeRequestedTab)
@@ -123,15 +124,15 @@ class textEditorWindow(QMainWindow):
 		text.onlineBox = onlineBox
 		#self.docklayout.addWidget(onlineBox)
 		self.docklayout.insertWidget(self.onlineIndex, onlineBox)
-
 		self.onlineIndex += 1
+		self.openDialog.hide()
 
 
-	def addPlusTab(self):
-		tabNew = QWidget()
-		self.tabs.addTab(tabNew, "+")
+	def initOpenDialog(self):
+		tabNew = self.openDialog
+		# tabNew = QWidget()
+		# self.tabs.addTab(tabNew, "+")
 		lytTab = QVBoxLayout(self)
-
 		############################
 		## Connection Layout Area ##
 		############################
@@ -261,7 +262,8 @@ class textEditorWindow(QMainWindow):
 		self.removeOpen.emit(tList)
 		self.tabsNextIndex += -1
 		self.openFiles.remove(text.fullName)
-		
+		if len(self.openFiles) == 0:
+			self.setEditingMenu(False)
 		for file in self.openFiles:
 			print(file)
 
@@ -383,6 +385,11 @@ class textEditorWindow(QMainWindow):
 		nameMenu = menuBar.addMenu('&Name')
 		users = menuBar.addMenu('&Users')
 		
+		openAct = QAction('&Open', self)
+		openAct.setShortcut('Ctrl+O')
+		openAct.triggered.connect(self.showOpenDialog)
+		self.fileMenu.addAction(openAct)
+
 		saveCloseAct = QAction('&Save and close', self)
 		saveCloseAct.setShortcut('Ctrl+W')
 		saveCloseAct.setStatusTip('Save the current tab and close it.')
@@ -464,6 +471,8 @@ class textEditorWindow(QMainWindow):
 			if child.metaObject().className() == "Textbox":
 				return child
 
+	def showOpenDialog(self):
+		self.openDialog.show()
 	# # TODO: Refactor constructor, it's way too long :(
 	# def configureMenubarAndToolbar(self):
 	# 	mainMenu = self.menuBar()
