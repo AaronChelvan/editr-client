@@ -8,7 +8,6 @@ import json, string, socket, sys, threading, time
 
 listenerThread = None
 
-# TODO: Refactor this into a class
 fontName = 'Lucida Console'
 fontSize = 14
 
@@ -35,7 +34,6 @@ class textEditorWindow(QMainWindow):
 		self.tabsNextIndex = 0
 
 		self.tabs = QTabWidget()
-
 		self.tabs.resize(300,200)
 		self.tabs.setTabsClosable(True)
 		self.initOpenDialog()
@@ -57,7 +55,27 @@ class textEditorWindow(QMainWindow):
 		self.docklayout.addStretch(1)
 		self.dockedWidget.setLayout(self.docklayout)
 		self.docked.hide()
-	# 	self.configureMenubarAndToolbar()
+
+		toolbar = QToolBar('Toolbar', self)
+		self.addToolBar(toolbar)
+		toolbar.setFixedHeight
+		fontFamilySelect = QFontComboBox(toolbar)
+		fontFamilySelect.setCurrentFont(QFont(fontName, fontSize))
+		fontFamilySelect.setWritingSystem(QFontDatabase.WritingSystem.Any)
+		# Monospaced fonts only
+		fontFamilySelect.setFontFilters(QFontComboBox.MonospacedFonts)
+		fontFamilySelect.currentFontChanged.connect(self.updateFontFamily)
+
+		self.fontSizes = ['8','9','10','11','12','14','16','18','20','22','24','26','28','36','48','72']
+		fontSizeSelect = QComboBox(toolbar)
+		fontSizeSelect.setSizeAdjustPolicy(QComboBox.AdjustToContents)
+		fontSizeSelect.move(150,0)
+		fontSizeSelect.addItems(self.fontSizes)
+		fontSizeSelect.setCurrentIndex(6)
+		# fontSizeSelect.setEditable(True)
+		# fontSizeSelect.setValidator(QIntValidator(1,1638))
+		fontSizeSelect.currentIndexChanged.connect(self.updateFontSizeIndex)
+		# fontSizeSelect.currentTextChanged.connect(self.updateFontSizeText)
 
 
 	def closeRequestedTab(self, index):
@@ -69,18 +87,18 @@ class textEditorWindow(QMainWindow):
 	def updateFontFamily(self, qfont):
 		global fontName
 		fontName = qfont.family()
-		self.textbox.setFont(QFont(fontName, fontSize))
-
+		if len(self.openFiles) > 0:
+			self.updateFonts()
+		
 	def updateFontSizeIndex(self, qsize):
 		global fontSize
 		fontSize = int(self.fontSizes[qsize])
-		self.textbox.setFont(QFont(fontName, fontSize))
+		if len(self.openFiles) > 0:
+			self.updateFonts()
 
-	# def updateFontSizeText(self, newText):
-	#   global fontSize
-	# 	fontSize = int(newText)
-	# 	self.textbox.setFont(QFont(fontName, fontSize))
-	##END
+	def updateFonts(self):
+		text = self.getCurrentTextbox()
+		text.setFont(QFont(fontName, fontSize))
 
 	def createNewTab(self):
 		ip, port, fileName, fullName = self.readFromLists()
@@ -471,39 +489,6 @@ class textEditorWindow(QMainWindow):
 
 	def showOpenDialog(self):
 		self.openDialog.show()
-	# # TODO: Refactor constructor, it's way too long :(
-	# def configureMenubarAndToolbar(self):
-	# 	mainMenu = self.menuBar()
-
-	# 	toolbar = QToolBar('Toolbar', self)
-	# 	self.addToolBar(toolbar)
-
-	# 	fileMenu = mainMenu.addMenu('&File')
-
-	# 	# =========== Actions =========== #
-	# 	# === File === #
-	
-
-	# 	# Toolbar things #
-	# 	fontFamilySelect = QFontComboBox(toolbar)
-	# 	fontFamilySelect.setCurrentFont(QFont(fontName, fontSize))
-	# 	fontFamilySelect.setWritingSystem(QFontDatabase.WritingSystem.Any)
-	# 	# Monospaced fonts only
-	# 	fontFamilySelect.setFontFilters(QFontComboBox.MonospacedFonts)
-	# 	fontFamilySelect.currentFontChanged.connect(self.updateFontFamily)
-
-	# 	self.fontSizes = ['8','9','10','11','12','14','16','18','20','22','24','26','28','36','48','72']
-	# 	fontSizeSelect = QComboBox(toolbar)
-	# 	fontSizeSelect.setSizeAdjustPolicy(QComboBox.AdjustToContents)
-	# 	fontSizeSelect.move(150,0)
-	# 	fontSizeSelect.addItems(self.fontSizes)
-	# 	fontSizeSelect.setCurrentIndex(6)
-	# 	# TODO: Fix the manual text input (it breaks when it is editable and certain control keys are pressed)
-	# 	# fontSizeSelect.setEditable(True)
-	# 	# fontSizeSelect.setValidator(QIntValidator(1,1638))
-	# 	fontSizeSelect.currentIndexChanged.connect(self.updateFontSizeIndex)
-	# 	# fontSizeSelect.currentTextChanged.connect(self.updateFontSizeText)
-
 
 	def setName(self):
 		if len(self.openFiles) > 0:
