@@ -5,7 +5,7 @@ from PyQt5.QtCore import Qt
 from lib import *
 
 class fileMenuWindow(QtWidgets.QMainWindow):
-	startEditing = QtCore.pyqtSignal(object, str, object)
+	startEditing = QtCore.pyqtSignal(object, str, object, str)
 	closeConnection = QtCore.pyqtSignal()
 
 	updateList = QtCore.pyqtSignal(object)
@@ -15,6 +15,7 @@ class fileMenuWindow(QtWidgets.QMainWindow):
 		self.setWindowTitle('Editr')
 		self.setFixedSize(600,500)
 		self.clientSocket = clientSocket
+		self.name = "Applejuice"
 
 		self.textlist = []
 		self.index = 0
@@ -85,6 +86,8 @@ class fileMenuWindow(QtWidgets.QMainWindow):
 		q.setLayout(overallLayout)
 		self.setCentralWidget(q)
 
+		self.menu()
+
 	def openFileHandler(self):
 		fileName = self.comboBox.currentText()
 		if fileName in self.openFiles:
@@ -94,7 +97,7 @@ class fileMenuWindow(QtWidgets.QMainWindow):
 		#	if "Err" in response["OpenResp"]:
 		#		showErrorMessage(response["OpenResp"]["Err"])
 		#	else:
-		self.startEditing.emit(self.clientSocket, fileName, self.listFiles)
+		self.startEditing.emit(self.clientSocket, fileName, self.listFiles, self.name)
 
 	def createFileHandler(self):
 		fileName = self.lineEditFileName.text()
@@ -182,3 +185,33 @@ class fileMenuWindow(QtWidgets.QMainWindow):
 	def removeOpenFiles(self, fileList):
 		for object in fileList:
 			self.openFiles.remove(object.fileName)
+
+	def menu(self):
+		exitAct = QAction(QIcon('exit.png'), '&Exit', self)
+		exitAct.setShortcut('Ctrl+Q')
+		exitAct.setStatusTip('Exit application')
+		exitAct.triggered.connect(qApp.quit)
+
+		menubar = self.menuBar()
+		filemenu = menubar.addMenu('&File')
+		filemenu.addAction(exitAct)
+
+		namemenu = menubar.addMenu('&Name')
+		nameAction = QAction('Set Username', self)
+		nameAction.triggered.connect(self.setName)
+		namemenu.addAction(nameAction)
+
+	def setName(self):
+		if len(self.openFiles) > 0:
+			showErrorMessage("Cant set name when files opened")
+			return
+
+		name, okPressed = QInputDialog.getText(self, "", "Set Username", QLineEdit.Normal, "")
+
+		if okPressed and name != "":
+			self.name = name
+
+		if okPressed and name == "":
+			showErrorMessage("Name cannot be blank")
+
+		print(self.name)
