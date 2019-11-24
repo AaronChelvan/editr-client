@@ -32,6 +32,7 @@ class textEditorWindow(QtWidgets.QMainWindow):
 		self.connFileMap = {}
 		self.names = []
 		self.onlineIndex = 1
+		self.nickname = "Applejuice"
 
 		self.fileList = []
 		self.tabsNextIndex = 1
@@ -49,11 +50,11 @@ class textEditorWindow(QtWidgets.QMainWindow):
 
 		self.menu()
 
-		self.names.append("David")
-		self.names.append("Aaron")
-		self.names.append("Ben")
-		self.names.append("Tony")
-		self.names.append("Samuel")
+		# self.names.append("David")
+		# self.names.append("Aaron")
+		# self.names.append("Ben")
+		# self.names.append("Tony")
+		# self.names.append("Samuel")
 
 		self.docked = QDockWidget("Online Users", self)
 		self.addDockWidget(Qt.LeftDockWidgetArea, self.docked)
@@ -474,13 +475,18 @@ class textEditorWindow(QtWidgets.QMainWindow):
 		exitAct.setStatusTip('Exit application')
 		exitAct.triggered.connect(qApp.quit)
 
-		self.menubar = self.menuBar()
-		filemenu = self.menubar.addMenu('&File')
+		menubar = self.menuBar()
+		filemenu = menubar.addMenu('&File')
 		filemenu.addAction(exitAct)
 
-		##Will be used to add new connections
-		users = self.menubar.addMenu('&Users')
+		namemenu = menubar.addMenu('&Name')
+		nameAction = QAction('Set Username', self)
+		nameAction.triggered.connect(self.setName)
+		namemenu.addAction(nameAction)
 
+		##Will be used to add new connections
+		users = menubar.addMenu('&Users')
+		
 		userAction = QAction('View Online Users', self, checkable=True)
 		userAction.setChecked(False)
 		userAction.triggered.connect(self.toggleOnline)
@@ -509,18 +515,31 @@ class textEditorWindow(QtWidgets.QMainWindow):
 
 	#Does nothing for the second,will need to make this so I can update the online list
 	#Either remake the layout or just remove the labels, but that would need the grid to be rearranged
-	def updateOnline(self, textbox):
-		fileusers = QGridLayout()
-		i = 0
-		y = 0
-		for x in self.names:
-			label = QLabel(x)
-			fileusers.addWidget(label, i, y)
-			i += 1
-			if i == 2:
-				y += 1
-				i = 0
-		textbox.onlineBox.setLayout(fileusers)
+def updateOnline(self):
+		for textbox in self.textBoxList:
+			if not textbox.namesChanged:
+				return
+			textbox.onlineBox.close()
+
+			fileusers = QGridLayout()
+			i = 0
+			y = 0
+			for x in textbox.names:
+				label = QLabel(x)
+				fileusers.addWidget(label, i, y)
+				i += 1
+				if i == 2:
+					y += 1
+					i = 0
+
+			onlineBox = QGroupBox()
+			onlineBox.setMaximumHeight(120)
+			onlineBox.setLayout(fileusers)
+			onlineBox.setTitle(textbox.fullName)
+			textbox.onlineBox = onlineBox
+
+			self.docklayout.insertWidget(self.onlineIndex, onlineBox)
+			textbox.namesChanged = False
 
 # The textbox where the file contents will be displayed
 class Textbox(QTextEdit):
@@ -534,6 +553,9 @@ class Textbox(QTextEdit):
 		fileContentsBytes = []
 		readLength = 100
 		i = 0
+		self.onlineBox = None
+		self.names = []
+		self.namesChanged = False
 		while True:
 			response = sendMessage(self.clientSocket, True, "read", 0 + i*readLength, readLength)
 			fileContentsPart = response["ReadResp"]["Ok"]
