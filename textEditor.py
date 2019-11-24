@@ -96,10 +96,8 @@ class textEditorWindow(QMainWindow):
 		self.tabsNextIndex += 1
 		text.stopEditing.connect(self.removeTab)
 		self.tabs.addTab(newTab, fullName)
-		# self.tabs.tabBar().tabCloseRequested.connect(text.stopEditingFunction)
 		newTab.layout = QVBoxLayout(self)
-		# self.tabs.tabBar().moveTab(self.tabsNextIndex - 2, self.tabsNextIndex-1)
-		# self.tabs.setCurrentIndex(self.tabsNextIndex-1)
+		self.tabs.setCurrentIndex(self.tabsNextIndex-1)
 		newTab.layout.addWidget(text)
 		newTab.setLayout(newTab.layout)
 		self.textBoxList.append(text)
