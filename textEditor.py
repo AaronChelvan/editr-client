@@ -543,24 +543,24 @@ class Textbox(QTextEdit):
 		self.textDocument.blockSignals(True)
 		self.blockSignals(True)
 		prevPosition = self.textCursor().position()
-		print("prevPositon = ", prevPosition, " num bytes = ", len(self.toPlainText().encode("utf-16")[2:]), " position = ", position)
+		#print("prevPositon = ", prevPosition, " num bytes = ", len(self.toPlainText().encode("utf-16")[2:]), " position = ", position)
 		cursor = self.textCursor()
 		if position == len(self.toPlainText().encode("utf-16")[2:]):
 			position -= 2
 
 		cursor.setPosition(position//2)
 		self.setTextCursor(cursor)
-		print("newPosition = ", self.textCursor().position(), " position = ", position)
+		#print("newPosition = ", self.textCursor().position(), " position = ", position)
 
 		# Delete the existing char
 		encodedText = self.toPlainText().encode("utf-16")[2:] # Ignore the byte order bytes using [2:]
-		print("encodedText = ", encodedText)
+		#print("encodedText = ", encodedText)
 		try:
 			prevChar = encodedText[position:position+2].decode("utf-16")
 			self.textCursor().deleteChar()
 			# Change the background colour
 			self.setTextBackgroundColor(QColor("red"))
-			# Put the chars back
+			# Put the char back
 			self.textCursor().insertText(prevChar)
 			# Restore the cursor and the background colour
 			self.setTextBackgroundColor(QColor("black"))
@@ -589,6 +589,8 @@ class Textbox(QTextEdit):
 	def updateCursorsHandler(self, update):
 		userlist = []
 		self.unHighlightEverything()
+		userCursorPos = update["GetCursorsResp"]["Ok"][0]
+		userCursorPosFound = False
 		for cursor in update["GetCursorsResp"]["Ok"][1]:
 			pos = cursor[0]
 			username = cursor[1]
@@ -597,7 +599,16 @@ class Textbox(QTextEdit):
 			else:
 				userlist.append("Anonymous")
 			print("pos = ", pos, " username = ", username)
-			self.highlightChar(pos)
+
+			# Avoid rendering the current user's cursor, unless there is another user at the same position
+			if pos == userCursorPos: 
+				if userCursorPosFound == False:
+					userCursorPosFound = True
+				else:
+					self.highlightChar(pos)
+			else:
+				self.highlightChar(pos)
+
 		self.updateOnline(self,userlist)
 
 	# This functions executes everytime the contents of the textbox changes
@@ -626,6 +637,8 @@ class Textbox(QTextEdit):
 			# If chars were added, move the cursor to the right
 			self.prevCursorPos += charsAdded*2
 
+		# Request the locations of the cursors
+		sendMessage(self.clientSocket, False, "getCursors")
 
 	# This function gets triggered when the listener thread receives an update from the server
 	def updateTextboxHandler(self, update):
