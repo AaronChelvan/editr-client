@@ -15,7 +15,6 @@ class serverMenuWindow(QtWidgets.QMainWindow):
     def __init__(self):
         QtWidgets.QMainWindow.__init__(self)
         self.setFixedSize(450, 400)
-        #self.menu()
         self.center()
 
         central = QWidget()

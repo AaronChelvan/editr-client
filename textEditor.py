@@ -20,17 +20,17 @@ class textEditorWindow(QMainWindow):
 	sigConnectionCreated = pyqtSignal(str,int)
 
 	# Constructor
-	def __init__(self, clientSocket, fileName, openFiles, curList, port):
+	def __init__(self, clientSocket, fileName, openFiles, curList, port, username):
 		super(textEditorWindow, self).__init__()
 		self.setGeometry(400, 400, 600, 500)
 		self.textBoxList = []
 		self.openFiles = openFiles
-
+		self.names = []
 		self.connFileMap = {}
 		self.port = port
 		self.ip = clientSocket.getsockname()[0]
-		self.names = []
 		self.onlineIndex = 1
+		self.username = username
 
 		clientSocket = self.createSocket(fileName, False)
 		if clientSocket is None:
@@ -62,12 +62,6 @@ class textEditorWindow(QMainWindow):
 		self.setCentralWidget(self.tabs)
 
 		self.menu()
-
-		self.names.append("David")
-		self.names.append("Aaron")
-		self.names.append("Ben")
-		self.names.append("Tony")
-		self.names.append("Samuel")
 
 		self.docked = QDockWidget("Online Users", self)
 		self.addDockWidget(Qt.LeftDockWidgetArea, self.docked)
@@ -424,19 +418,6 @@ class textEditorWindow(QMainWindow):
 
 		users.addAction(userAction)
 
-
-		#self.menubar.addMenu('&Settings')
-
-		#helpmenu = self.menubar.addMenu('&Help')
-		#aboutAct = QAction('&About', self)
-
-		#feedbackAct = QAction('&Feedback', self)
-		#helpAct = QAction('&Help', self)
-
-		#helpmenu.addAction(aboutAct)
-		#helpmenu.addAction(feedbackAct)
-		#helpmenu.addAction(helpAct)
-
 	def toggleOnline(self, state):
 		if state:
 			self.docked.show()
@@ -444,20 +425,35 @@ class textEditorWindow(QMainWindow):
 		if not state:
 			self.docked.hide()
 
-	#Does nothing for the second,will need to make this so I can update the online list
-	#Either remake the layout or just remove the labels, but that would need the grid to be rearranged
-	def updateOnline(self, textbox):
-		fileusers = QGridLayout()
-		i = 0
-		y = 0
-		for x in self.names:
-			label = QLabel(x)
-			fileusers.addWidget(label, i, y)
-			i += 1
-			if i == 2:
-				y += 1
-				i = 0
-		textbox.onlineBox.setLayout(fileusers)
+	def updateOnline(self):
+
+		for textbox in self.textBoxList:
+			if not textbox.namesChanged:
+				return
+
+			textbox.onlineBox.close()
+
+			fileusers = QGridLayout()
+			i = 0
+			y = 0
+			for x in textbox.names:
+				label = QLabel(x)
+				fileusers.addWidget(label, i, y)
+				i += 1
+				if i == 2:
+					y += 1
+					i = 0
+
+			onlineBox = QGroupBox()
+			onlineBox.setMaximumHeight(120)
+			onlineBox.setLayout(fileusers)
+			onlineBox.setTitle(textbox.fileName)
+			textbox.onlineBox = onlineBox
+
+			self.docklayout.insertWidget(self.onlineIndex, onlineBox)
+			textbox.namesChanged = False
+
+
 
 # The textbox where the file contents will be displayed
 class Textbox(QTextEdit):
@@ -472,6 +468,10 @@ class Textbox(QTextEdit):
 		fileContents = ""
 		readLength = 100
 		i = 0
+		self.onlineBox = None
+		self.names = []
+		self.namesChanged = False
+
 		while True:
 			response = sendMessage(self.clientSocket, True, "read", 0 + i*readLength, readLength)
 			fileContentsPart = response["ReadResp"]["Ok"]
