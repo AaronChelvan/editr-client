@@ -15,24 +15,36 @@ class Controller:
     def show_server_menu(self): # The menu where we select a server
         #if self.window != None:
         #    self.window.close()
-        self.window = serverMenu.serverMenuWindow()
-        self.window.connectSuccessful.connect(self.show_file_menu)
-        self.window.show()
+        self.menu = serverMenu.serverMenuWindow()
+        self.menu.connectSuccessful.connect(self.show_file_menu)
+        self.menu.show()
 
     
-    def show_file_menu(self, clientSocket): # The menu where we select a file
-        self.window.close()
+    def show_file_menu(self, clientSocket, port): # The menu where we select a file
+        self.port = port
+        self.menu.close()
         self.window = fileMenu.fileMenuWindow(clientSocket)
         self.window.startEditing.connect(self.show_text_editor)
         self.window.closeConnection.connect(self.show_server_menu)
+        self.window.updateList.connect(self.updateTextList)
         self.window.show()
-    
 
-    def show_text_editor(self, clientSocket, fileName): # The textbox
-        self.window.close()
-        self.window = textEditor.textEditorWindow(clientSocket, fileName)
-        self.window.stopEditing.connect(self.show_file_menu)
-        self.window.show()
+
+    def show_text_editor(self, clientSocket, fileName, curList, username): # The textbox
+        text = textEditor.textEditorWindow(clientSocket, fileName,self.window.returnOpenFiles, curList, self.port, username)
+        text.updateOpen.connect(self.updateOpenFiles)
+        text.removeOpen.connect(self.removeOpenFiles)
+        self.window.appendTextList(text)
+
+    def updateTextList(self, listFiles):
+        for object in self.window.textlist:
+            object.setFileList(listFiles)
+
+    def updateOpenFiles(self, fileName):
+        self.window.updateOpenFiles(fileName)
+
+    def removeOpenFiles(self,fileNameList):
+        self.window.removeOpenFiles(fileNameList)
 
 # The colour scheme
 def palette():
