@@ -15,7 +15,7 @@ class fileMenuWindow(QtWidgets.QMainWindow):
 		self.setWindowTitle('Editr')
 		self.setFixedSize(600,500)
 		self.clientSocket = clientSocket
-		self.name = "Applejuice"
+		self.name = None
 
 		self.textlist = []
 		self.index = 0

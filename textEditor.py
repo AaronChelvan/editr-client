@@ -36,7 +36,7 @@ class textEditorWindow(QMainWindow):
 		if clientSocket is None:
 			self.close()
 
-		text = Textbox(clientSocket, fileName, 0)
+		text = Textbox(clientSocket, fileName, 0, self.updateOnline)
 		text.stopEditing.connect(self.removeTab)
 		self.textBoxList.append(text)
 		self.fileName = fileName
@@ -204,7 +204,7 @@ class textEditorWindow(QMainWindow):
 			return
 		
 		tab = QWidget()
-		text = Textbox(clientSocket, fileName, self.tabsNextIndex)
+		text = Textbox(clientSocket, fileName, self.tabsNextIndex, self.updateOnline)
 		self.tabsNextIndex += 1
 
 		text.stopEditing.connect(self.removeTab)
@@ -237,9 +237,9 @@ class textEditorWindow(QMainWindow):
 		onlineBox.setTitle(fileName)
 
 		text.onlineBox = onlineBox
-
 		#self.docklayout.addWidget(onlineBox)
 		self.docklayout.insertWidget(self.onlineIndex, onlineBox)
+
 		self.onlineIndex += 1
 
 
@@ -374,7 +374,7 @@ class textEditorWindow(QMainWindow):
 			if fileName in open:
 				showErrorMessage("File is already open!")
 			else:
-				response = sendMessage(clientSocket, True, "open", fileName, None)
+				response = sendMessage(clientSocket, True, "open", fileName, self.username)
 				if "Err" in response["OpenResp"]:
 					showErrorMessage(response["OpenResp"]["Err"])
 					return None
@@ -392,7 +392,7 @@ class textEditorWindow(QMainWindow):
 		if fileName in open:
 			showErrorMessage("File is already open!")
 		else:
-			response = sendMessage(clientSocket, True, "open", fileName, None)
+			response = sendMessage(clientSocket, True, "open", fileName, self.username)
 			if "Err" in response["OpenResp"]:
 				showErrorMessage(response["OpenResp"]["Err"])
 				return None
@@ -425,33 +425,37 @@ class textEditorWindow(QMainWindow):
 		if not state:
 			self.docked.hide()
 
-	def updateOnline(self):
+	def updateOnline(self, textbox, userlist):
+		userlist.sort()
+		if userlist == textbox.names:
+			return
+		index = self.docklayout.indexOf(textbox.onlineBox)
+		textbox.onlineBox.close()
 
-		for textbox in self.textBoxList:
-			if not textbox.namesChanged:
-				return
+		fileusers = QGridLayout()
+		i = 0
+		y = 0
+		count = 0
+		for x in userlist:
+			if x == self.username and count == 0:
+				count+=1
+				continue
 
-			textbox.onlineBox.close()
+			label = QLabel(x)
+			fileusers.addWidget(label, i, y)
+			i += 1
+			if i == 2:
+				y += 1
+				i = 0
 
-			fileusers = QGridLayout()
-			i = 0
-			y = 0
-			for x in textbox.names:
-				label = QLabel(x)
-				fileusers.addWidget(label, i, y)
-				i += 1
-				if i == 2:
-					y += 1
-					i = 0
+		onlineBox = QGroupBox()
+		onlineBox.setMaximumHeight(120)
+		onlineBox.setLayout(fileusers)
+		onlineBox.setTitle(textbox.fileName)
+		textbox.onlineBox = onlineBox
 
-			onlineBox = QGroupBox()
-			onlineBox.setMaximumHeight(120)
-			onlineBox.setLayout(fileusers)
-			onlineBox.setTitle(textbox.fileName)
-			textbox.onlineBox = onlineBox
-
-			self.docklayout.insertWidget(self.onlineIndex, onlineBox)
-			textbox.namesChanged = False
+		self.docklayout.insertWidget(index, onlineBox)
+		textbox.names = userlist
 
 
 
@@ -459,7 +463,7 @@ class textEditorWindow(QMainWindow):
 class Textbox(QTextEdit):
 	# Constructor
 	stopEditing = pyqtSignal(int, object)
-	def __init__(self, clientSocket,fileName, index):
+	def __init__(self, clientSocket,fileName, index, updateOnline):
 		super(Textbox, self).__init__()
 		self.clientSocket = clientSocket # Save the socket
 
@@ -470,7 +474,7 @@ class Textbox(QTextEdit):
 		i = 0
 		self.onlineBox = None
 		self.names = []
-		self.namesChanged = False
+		self.updateOnline = updateOnline
 
 		while True:
 			response = sendMessage(self.clientSocket, True, "read", 0 + i*readLength, readLength)
@@ -575,12 +579,16 @@ class Textbox(QTextEdit):
 		self.textDocument.blockSignals(False)
 
 	def updateCursorsHandler(self, update):
+		userlist = []
 		self.unHighlightEverything()
 		for cursor in update["GetCursorsResp"]["Ok"][1]:
 			pos = cursor[0]
 			username = cursor[1]
+			if (not username is None) and (not username == ""):
+				userlist.append(username)
 			print("pos = ", pos, " username = ", username)
 			#self.highlightChar(pos)
+		self.updateOnline(self,userlist)
 
 	# This functions executes everytime the contents of the textbox changes
 	def contentsChangeHandler(self, charPosition, charsRemoved, charsAdded):
