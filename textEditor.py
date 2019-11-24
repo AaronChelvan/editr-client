@@ -5,6 +5,7 @@ from lib import *
 import json, string, socket, sys, threading, time
 
 listenerThread = None
+cursorRequesterThread = None
 
 # TODO: Refactor this into a class
 fontName = 'Lucida Console'
@@ -514,6 +515,11 @@ class Textbox(QTextEdit):
 		listenerThread.updateCursors.connect(self.updateCursorsHandler)
 		listenerThread.start()
 
+		# Start the cursor requester thread
+		global cursorRequesterThread
+		cursorRequesterThread = CursorRequesterThread(self.clientSocket)
+		cursorRequesterThread.start()
+
 	#def cursorPositionChangedHandler(self):
 	#	cursorPos = self.textCursor().position()
 	#	print(cursorPos)
@@ -533,7 +539,6 @@ class Textbox(QTextEdit):
 		#self.textDocument.blockSignals(False)
 		#self.setTextBackgroundColor(QColor("black"))
 
-	# TODO
 	def highlightChar(self, position):
 		self.textDocument.blockSignals(True)
 		self.blockSignals(True)
@@ -563,7 +568,7 @@ class Textbox(QTextEdit):
 			#	self.textCursor().deleteChar()
 			print("char to highlight = ", prevChar, " ", encodedText[position:position+2])
 		except UnicodeDecodeError: 
-			print("failed to decode char. not highlighting.")		
+			print("failed to decode char. not highlighting.")
 
 		cursor.setPosition(prevPosition)
 		self.setTextCursor(cursor)
@@ -589,6 +594,8 @@ class Textbox(QTextEdit):
 			username = cursor[1]
 			if (not username is None) and (not username == ""):
 				userlist.append(username)
+			else:
+				userlist.append("Anonymous")
 			print("pos = ", pos, " username = ", username)
 			self.highlightChar(pos)
 		self.updateOnline(self,userlist)
@@ -637,15 +644,23 @@ class Textbox(QTextEdit):
 			newText = encodedText[:offset+byteOrderSize] + encodedText[offset+byteOrderSize+lenToRemove:]
 		self.textDocument.setPlainText(newText.decode("utf-16"))
 		self.textDocument.blockSignals(False)
-		
-		# Request the new cursor positions
+
+		# Request the locations of the cursors
 		sendMessage(self.clientSocket, False, "getCursors")
 
+		
+		
 	def stopEditingFunction(self,index):
 		# Stop the listener thread
 		global listenerThread
 		listenerThread.terminate()
 		listenerThread.wait()
+
+		# Stop requesting cursor positions
+		global cursorRequesterThread
+		cursorRequesterThread.terminate()
+		cursorRequesterThread.wait()
+
 		# need to add true to messages
 		# Enable socket blocking
 		self.clientSocket.setblocking(True)
@@ -693,5 +708,16 @@ class ListenerThread(QThread):
 
 		print("listener is stopping")
 
+# This thread periodically requests a list of cursors
+class CursorRequesterThread(QThread):
+	def __init__(self, clientSocket):
+		super(CursorRequesterThread, self).__init__()
+		self.clientSocket = clientSocket
 
+	def run(self):
+		while True:
+			sendMessage(self.clientSocket, False, "getCursors")
+			time.sleep(5)
+
+		print("cursor requester is stopping")
 
