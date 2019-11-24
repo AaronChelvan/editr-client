@@ -19,7 +19,6 @@ class textEditorWindow(QMainWindow):
 
 	updateOpen = pyqtSignal(str)
 	removeOpen = pyqtSignal(object)
-	sigConnectionCreated = pyqtSignal(str,int)
 
 	# Constructor
 	def __init__(self):
@@ -46,6 +45,7 @@ class textEditorWindow(QMainWindow):
 		self.setCentralWidget(self.tabs)
 
 		self.menu()
+		self.setEditingMenu(False)
 
 		self.docked = QDockWidget("Online Users", self)
 		self.addDockWidget(Qt.LeftDockWidgetArea, self.docked)
@@ -58,85 +58,11 @@ class textEditorWindow(QMainWindow):
 		self.docked.hide()
 	# 	self.configureMenubarAndToolbar()
 
-	# # TODO: Refactor constructor, it's way too long :(
-	# def configureMenubarAndToolbar(self):
-	# 	mainMenu = self.menuBar()
-
-	# 	toolbar = QToolBar('Toolbar', self)
-	# 	self.addToolBar(toolbar)
-
-	# 	fileMenu = mainMenu.addMenu('&File')
-	# 	editMenu = mainMenu.addMenu('&Edit')
-
-	# 	# =========== Actions =========== #
-	# 	# === File === #
-	# 	saveAct = QAction('&Save and close', self)
-	# 	saveAct.setStatusTip('Save the current file andstopEditingFunction close the editor.')
-	# 	# saveAct.triggered.connect(self.stopEditingFunction)
-	# 	fileMenu.addAction(saveAct)
-
-	# 	# === Edit === #
-	# 	cutAct = QAction('&Cut', self)
-	# 	cutAct.setStatusTip('Cut the current selection')
-	# 	cutAct.triggered.connect(self.textbox.cut)
-	# 	editMenu.addAction(cutAct)
-
-	# 	copyAct = QAction('&Copy', self)
-	# 	copyAct.setStatusTip('Copy the current selection')
-	# 	copyAct.triggered.connect(self.textbox.copy)
-	# 	editMenu.addAction(copyAct)
-
-	# 	pasteAct = QAction('&Paste', self)
-	# 	pasteAct.setStatusTip('Paste the current selection')
-	# 	pasteAct.triggered.connect(self.textbox.paste)
-	# 	editMenu.addAction(pasteAct)
-
-	# 	editMenu.addSeparator()
-
-	# 	undoAct = QAction('&Undo', self)
-	# 	undoAct.setStatusTip('Undo the current selection')
-	# 	undoAct.triggered.connect(self.textbox.undo)
-	# 	editMenu.addAction(undoAct)
-
-	# 	redoAct = QAction('&Redo', self)
-	# 	redoAct.setStatusTip('Redo the current selection')
-	# 	redoAct.triggered.connect(self.textbox.redo)
-	# 	editMenu.addAction(redoAct)
-
-	# 	editMenu.addSeparator()
-
-	# 	findAct = QAction('&Find', self)
-	# 	editMenu.addAction(findAct)
-
-	# 	replaceAct = QAction('&Replace', self)
-	# 	editMenu.addAction(replaceAct)
-
-	# 	# Toolbar things #
-	# 	fontFamilySelect = QFontComboBox(toolbar)
-	# 	fontFamilySelect.setCurrentFont(QFont(fontName, fontSize))
-	# 	fontFamilySelect.setWritingSystem(QFontDatabase.WritingSystem.Any)
-	# 	# Monospaced fonts only
-	# 	fontFamilySelect.setFontFilters(QFontComboBox.MonospacedFonts)
-	# 	fontFamilySelect.currentFontChanged.connect(self.updateFontFamily)
-
-	# 	self.fontSizes = ['8','9','10','11','12','14','16','18','20','22','24','26','28','36','48','72']
-	# 	fontSizeSelect = QComboBox(toolbar)
-	# 	fontSizeSelect.setSizeAdjustPolicy(QComboBox.AdjustToContents)
-	# 	fontSizeSelect.move(150,0)
-	# 	fontSizeSelect.addItems(self.fontSizes)
-	# 	fontSizeSelect.setCurrentIndex(6)
-	# 	# TODO: Fix the manual text input (it breaks when it is editable and certain control keys are pressed)
-	# 	# fontSizeSelect.setEditable(True)
-	# 	# fontSizeSelect.setValidator(QIntValidator(1,1638))
-	# 	fontSizeSelect.currentIndexChanged.connect(self.updateFontSizeIndex)
-	# 	# fontSizeSelect.currentTextChanged.connect(self.updateFontSizeText)
 
 	def closeRequestedTab(self, index):
-		childrenList = self.tabs.widget(index).children()
-		textBox = QWidget()
-		for name in childrenList:
-			if name.metaObject().className() == "Textbox":
-				textBox = name
+		if index==False: # hardcoded to be from menu item
+			index = self.tabs.currentIndex()
+		textBox = self.getCurrentTextbox(index=index)
 		textBox.stopEditingFunction(index)
 
 	def updateFontFamily(self, qfont):
@@ -163,11 +89,11 @@ class textEditorWindow(QMainWindow):
 		clientSocket = self.createFileSocket(ip, port, fileName)
 		if clientSocket is None:
 			return
+		self.setEditingMenu(True)
 		newTab = QWidget()
 		text = Textbox(clientSocket, fullName, self.tabsNextIndex, self.updateOnline)
 		self.tabsNextIndex += 1
 		text.stopEditing.connect(self.removeTab)
-
 		self.tabs.addTab(newTab, fullName)
 		# self.tabs.tabBar().tabCloseRequested.connect(text.stopEditingFunction)
 		newTab.layout = QVBoxLayout(self)
@@ -177,10 +103,8 @@ class textEditorWindow(QMainWindow):
 		newTab.setLayout(newTab.layout)
 		self.textBoxList.append(text)
 		self.openFiles.append(fullName)
-
 		fileusers = QGridLayout()
 		##Temporary
-
 		i = 0
 		y = 0
 		for x in text.names:
@@ -337,8 +261,16 @@ class textEditorWindow(QMainWindow):
 		self.removeOpen.emit(tList)
 		self.tabsNextIndex += -1
 		self.openFiles.remove(text.fullName)
+		
 		for file in self.openFiles:
 			print(file)
+
+	def setEditingMenu(self, enabled):
+		for child in self.fileMenu.actions():
+			if child.text() == '&Save and close':
+				child.setEnabled(enabled)
+		for child in self.editMenu.actions():
+			child.setEnabled(enabled)
 
 	def setFileList(self, fileList):
 		self.fileList = fileList
@@ -445,28 +377,126 @@ class textEditorWindow(QMainWindow):
 		return (ip, port, fileName, fullName)
 
 	def menu(self):
+		menuBar = self.menuBar()
+		self.fileMenu = menuBar.addMenu('&File')
+		self.editMenu = menuBar.addMenu('&Edit')
+		nameMenu = menuBar.addMenu('&Name')
+		users = menuBar.addMenu('&Users')
+		
+		saveCloseAct = QAction('&Save and close', self)
+		saveCloseAct.setShortcut('Ctrl+W')
+		saveCloseAct.setStatusTip('Save the current tab and close it.')
+		saveCloseAct.triggered.connect(self.closeRequestedTab)
+		self.fileMenu.addAction(saveCloseAct)
+
 		exitAct = QAction(QIcon('exit.png'), '&Exit', self)
 		exitAct.setShortcut('Ctrl+Q')
 		exitAct.setStatusTip('Exit application')
 		exitAct.triggered.connect(qApp.quit)
+		self.fileMenu.addAction(exitAct)
 
-		menubar = self.menuBar()
-		filemenu = menubar.addMenu('&File')
-		filemenu.addAction(exitAct)
+	 	# === Edit === #
+		cutAct = QAction('&Cut', self)
+		cutAct.setStatusTip('Cut the current selection')
+		cutAct.setShortcut('Ctrl+X')
+		cutAct.triggered.connect(self.cutWrapper)
+		self.editMenu.addAction(cutAct)
 
-		namemenu = menubar.addMenu('&Name')
+		copyAct = QAction('&Copy', self)
+		copyAct.setStatusTip('Copy the current selection')
+		copyAct.setShortcut('Ctrl+C')
+		copyAct.triggered.connect(self.copyWrapper)
+		self.editMenu.addAction(copyAct)
+
+		pasteAct = QAction('&Paste', self)
+		pasteAct.setStatusTip('Paste the current selection')
+		pasteAct.setShortcut('Ctrl+V')
+		pasteAct.triggered.connect(self.pasteWrapper)
+		self.editMenu.addAction(pasteAct)
+
+		self.editMenu.addSeparator()
+
+		undoAct = QAction('&Undo', self)
+		undoAct.setStatusTip('Undo the current selection')
+		undoAct.setShortcut('Ctrl+Z')
+		undoAct.triggered.connect(self.undoWrapper)
+		self.editMenu.addAction(undoAct)
+
+		redoAct = QAction('&Redo', self)
+		redoAct.setStatusTip('Redo the current selection')
+		redoAct.setShortcut('Ctrl+Y')
+		redoAct.triggered.connect(self.redoWrapper)
+		self.editMenu.addAction(redoAct)
+
 		nameAction = QAction('Set Username', self)
 		nameAction.triggered.connect(self.setName)
-		namemenu.addAction(nameAction)
+		nameMenu.addAction(nameAction)
 
 		##Will be used to add new connections
-		users = menubar.addMenu('&Users')
-
+		
 		userAction = QAction('View Online Users', self, checkable=True)
 		userAction.setChecked(False)
 		userAction.triggered.connect(self.toggleOnline)
 
 		users.addAction(userAction)
+
+	def cutWrapper(self):
+		text = self.getCurrentTextbox()
+		text.cut()
+	def copyWrapper(self):
+		text = self.getCurrentTextbox()
+		text.copy()
+	def pasteWrapper(self):
+		text = self.getCurrentTextbox()
+		text.paste()
+	def undoWrapper(self):
+		text = self.getCurrentTextbox()
+		text.undo()
+	def redoWrapper(self):
+		text = self.getCurrentTextbox()
+		text.redo()
+
+	def getCurrentTextbox(self, index=None):
+		if index==None:
+			index = self.tabs.currentIndex()
+		childrenList = self.tabs.widget(index).children()
+		for child in childrenList:
+			if child.metaObject().className() == "Textbox":
+				return child
+
+	# # TODO: Refactor constructor, it's way too long :(
+	# def configureMenubarAndToolbar(self):
+	# 	mainMenu = self.menuBar()
+
+	# 	toolbar = QToolBar('Toolbar', self)
+	# 	self.addToolBar(toolbar)
+
+	# 	fileMenu = mainMenu.addMenu('&File')
+
+	# 	# =========== Actions =========== #
+	# 	# === File === #
+	
+
+	# 	# Toolbar things #
+	# 	fontFamilySelect = QFontComboBox(toolbar)
+	# 	fontFamilySelect.setCurrentFont(QFont(fontName, fontSize))
+	# 	fontFamilySelect.setWritingSystem(QFontDatabase.WritingSystem.Any)
+	# 	# Monospaced fonts only
+	# 	fontFamilySelect.setFontFilters(QFontComboBox.MonospacedFonts)
+	# 	fontFamilySelect.currentFontChanged.connect(self.updateFontFamily)
+
+	# 	self.fontSizes = ['8','9','10','11','12','14','16','18','20','22','24','26','28','36','48','72']
+	# 	fontSizeSelect = QComboBox(toolbar)
+	# 	fontSizeSelect.setSizeAdjustPolicy(QComboBox.AdjustToContents)
+	# 	fontSizeSelect.move(150,0)
+	# 	fontSizeSelect.addItems(self.fontSizes)
+	# 	fontSizeSelect.setCurrentIndex(6)
+	# 	# TODO: Fix the manual text input (it breaks when it is editable and certain control keys are pressed)
+	# 	# fontSizeSelect.setEditable(True)
+	# 	# fontSizeSelect.setValidator(QIntValidator(1,1638))
+	# 	fontSizeSelect.currentIndexChanged.connect(self.updateFontSizeIndex)
+	# 	# fontSizeSelect.currentTextChanged.connect(self.updateFontSizeText)
+
 
 	def setName(self):
 		if len(self.openFiles) > 0:
@@ -706,7 +736,6 @@ class Textbox(QTextEdit):
 		# need to add true to messages
 		# Enable socket blocking
 		self.clientSocket.setblocking(True)
-
 		# Save the changes made and close the file
 		sendMessage(self.clientSocket, True, "save")
 		sendMessage(self.clientSocket, False, "close")
