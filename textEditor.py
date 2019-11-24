@@ -202,29 +202,31 @@ class Textbox(QTextEdit):
 		self.textDocument.blockSignals(True)
 		self.blockSignals(True)
 		prevPosition = self.textCursor().position()
+		print("prevPositon = ", prevPosition, " num bytes = ", len(self.toPlainText().encode("utf-16")[2:]), " position = ", position)
 		cursor = self.textCursor()
-		#if prevPosition == len(self.toPlainText()):
-		#	prevPosition -= 1
-		#print("prevPositon = ", prevPosition)
+		if position == len(self.toPlainText().encode("utf-16")[2:]):
+			position -= 2
 
-		cursor.setPosition(position)
+		cursor.setPosition(position//2)
 		self.setTextCursor(cursor)
-		self.textCursor().setPosition(position)
-		#print("newPosition = ", self.textCursor().position(), " position = ", position)
+		print("newPosition = ", self.textCursor().position(), " position = ", position)
 
 		# Delete the existing char
-		prevChar = self.toPlainText().encode("utf-16")[position]
+		encodedText = self.toPlainText().encode("utf-16")[2:] # Ignore the byte order bytes using [2:]
+		print("encodedText = ", encodedText)
+		prevChar = encodedText[position:position+2].decode("utf-16")
+		#if position > 0:
 		self.textCursor().deleteChar()
-		#print("char to highlight = ", prevChar)
-
 		# Change the background colour
 		self.setTextBackgroundColor(QColor("red"))
-
-		# Put the char back
+		# Put the chars back
 		self.textCursor().insertText(prevChar)
-		
 		# Restore the cursor and the background colour
 		self.setTextBackgroundColor(QColor("black"))
+		#else:
+		#	self.textCursor().deleteChar()
+		print("char to highlight = ", prevChar, " ", encodedText[position:position+2])
+
 
 		cursor.setPosition(prevPosition)
 		self.setTextCursor(cursor)
@@ -248,7 +250,7 @@ class Textbox(QTextEdit):
 			pos = cursor[0]
 			username = cursor[1]
 			print("pos = ", pos, " username = ", username)
-			#self.highlightChar(pos)
+			self.highlightChar(pos)
 
 	# This functions executes everytime the contents of the textbox changes
 	def contentsChangeHandler(self, charPosition, charsRemoved, charsAdded):
