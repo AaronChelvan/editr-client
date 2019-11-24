@@ -5,55 +5,25 @@ from PyQt5.QtCore import Qt
 from lib import *
 
 class fileMenuWindow(QtWidgets.QMainWindow):
-	startEditing = QtCore.pyqtSignal(object, str, object)
+	startEditing = QtCore.pyqtSignal()
 	closeConnection = QtCore.pyqtSignal()
 
 	updateList = QtCore.pyqtSignal(object)
 
-	def __init__(self, clientSocket):
+	def __init__(self):
 		QMainWindow.__init__(self)
 		self.setWindowTitle('Editr')
 		self.setFixedSize(600,500)
-		self.clientSocket = clientSocket
 
 		self.textlist = []
 		self.index = 0
 		self.openFiles = []
-
-		# Label for the drop-down menu
-		fileNameLabel = QLabel()
-		fileNameLabel.setText("File name:")
-		fileNameLabel.setFixedSize(100, 50)
 
 		# Button for opening a file
 		self.openFileButton = QPushButton('Open File')
 		self.openFileButton.clicked.connect(self.openFileHandler) 
 		self.openFileButton.setFixedSize(100, 50)
 
-		# Button for renaming a file
-		self.renameFileButton = QPushButton('Rename File')
-		self.renameFileButton.clicked.connect(self.renameFileHandler)
-		self.renameFileButton.setFixedSize(100, 50)
-
-		# Button for deleting a file
-		self.deleteFileButton = QPushButton('Delete File')
-		self.deleteFileButton.clicked.connect(self.deleteFileHandler)
-		self.deleteFileButton.setFixedSize(100, 50)
-		
-		# Drop-down menu for selecting a file
-		self.comboBox = QComboBox()
-		self.comboBox.view().setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-		self.updateFileList()
-		
-		# Text field for entering the name of a file to create
-		self.lineEditFileName = QLineEdit()
-		self.lineEditFileName.setFixedSize(200, 30)
-		
-		# Button for creating a file
-		createFileButton = QPushButton('Create File')
-		createFileButton.clicked.connect(self.createFileHandler) 
-		createFileButton.setFixedSize(100, 50)
-		
 		# Button for closing connection to the server
 		closeButton = QPushButton('Close Connection')
 		closeButton.clicked.connect(self.closeConnectionHandler)
@@ -61,40 +31,20 @@ class fileMenuWindow(QtWidgets.QMainWindow):
 
 		# Layout configuration
 		fileSelectLayout = QHBoxLayout()
-		fileSelectLayout.addWidget(self.comboBox)
 		fileSelectLayout.addWidget(self.openFileButton)
-		fileSelectLayout.addWidget(self.renameFileButton)
-		fileSelectLayout.addWidget(self.deleteFileButton)
-		fileSelectGroupBox = QGroupBox()
-		fileSelectGroupBox.setLayout(fileSelectLayout)
-		fileSelectGroupBox.setTitle("Select a file")
-
-		createFileLayout = QHBoxLayout()
-		createFileLayout.addWidget(self.lineEditFileName)
-		createFileLayout.addWidget(createFileButton)
-		createFileGroupBox = QGroupBox()
-		createFileGroupBox.setLayout(createFileLayout)
-		createFileGroupBox.setTitle("Create a file")
-
-		overallLayout = QVBoxLayout()
-		overallLayout.addWidget(fileSelectGroupBox)
-		overallLayout.addWidget(createFileGroupBox)
-		overallLayout.addWidget(closeButton)
 
 		q = QWidget()
-		q.setLayout(overallLayout)
+		q.setLayout(fileSelectLayout)
 		self.setCentralWidget(q)
 
 	def openFileHandler(self):
-		fileName = self.comboBox.currentText()
-		if fileName in self.openFiles:
-			showErrorMessage("File is already open!")
+
 		#else:
 		#	response = sendMessage(self.clientSocket, True, "open", fileName)
 		#	if "Err" in response["OpenResp"]:
 		#		showErrorMessage(response["OpenResp"]["Err"])
 		#	else:
-		self.startEditing.emit(self.clientSocket, fileName, self.listFiles)
+		self.startEditing.emit()
 
 	def createFileHandler(self):
 		fileName = self.lineEditFileName.text()
@@ -168,7 +118,7 @@ class fileMenuWindow(QtWidgets.QMainWindow):
 		self.textlist.append(text)
 		self.textlist[self.index].show()
 		self.index += 1
-		self.openFiles.append(text.fileName)
+		# self.openFiles.append(text.fileName)
 
 	def remove_from_list(self, fileName):
 		self.openFiles.remove(fileName)

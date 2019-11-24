@@ -20,44 +20,28 @@ class textEditorWindow(QMainWindow):
 	sigConnectionCreated = pyqtSignal(str,int)
 
 	# Constructor
-	def __init__(self, clientSocket, fileName, openFiles, curList, port):
+	def __init__(self):
 		super(textEditorWindow, self).__init__()
 		self.setGeometry(400, 400, 600, 500)
 		self.textBoxList = []
-		self.openFiles = openFiles
+		self.openFiles = []
 
 		self.connFileMap = {}
-		self.port = port
-		self.ip = clientSocket.getsockname()[0]
 		self.names = []
 		self.onlineIndex = 1
 
-		clientSocket = self.createSocket(fileName, False)
-		if clientSocket is None:
-			self.close()
 
-		text = Textbox(clientSocket, fileName, 0)
-		text.stopEditing.connect(self.removeTab)
-		self.textBoxList.append(text)
-		self.fileName = fileName
-
-		self.fileList = curList
-		self.plusPosition = 1
+		self.fileList = []
 		self.tabsNextIndex = 2
 
 		self.tabs = QTabWidget()
-		self.tab1 = QWidget()
 
 		self.tabs.resize(300,200)
 		self.tabs.setTabsClosable(True)
-		self.tabs.addTab(self.tab1, fileName)
 		self.addPlusTab()
 		self.layout = QVBoxLayout(self)
-		self.tab1.layout = QVBoxLayout(self)
 		self.tabs.tabBar().setTabsClosable(True)
 		self.tabs.tabBar().tabCloseRequested.connect(self.closeRequestedTab)
-		self.tab1.layout.addWidget(text)
-		self.tab1.setLayout(self.tab1.layout)
 
 		self.setCentralWidget(self.tabs)
 
@@ -88,9 +72,6 @@ class textEditorWindow(QMainWindow):
 		onlineBox = QGroupBox()
 		onlineBox.setMaximumHeight(120)
 		onlineBox.setLayout(fileusers)
-		onlineBox.setTitle(fileName)
-
-		text.onlineBox = onlineBox
 
 		self.docklayout = QVBoxLayout()
 		self.docklayout.addStretch(1)
@@ -376,7 +357,7 @@ class textEditorWindow(QMainWindow):
 			showErrorMessage("Failed to connect")
 			return None
 		if not bool:
-			open = self.openFiles()
+			open = self.openFiles
 			if fileName in open:
 				showErrorMessage("File is already open!")
 			else:
@@ -394,7 +375,7 @@ class textEditorWindow(QMainWindow):
 		except socket.error:
 			showErrorMessage("Failed to connect")
 			return None
-		open = self.openFiles()
+		open = self.openFiles
 		if fileName in open:
 			showErrorMessage("File is already open!")
 		else:
