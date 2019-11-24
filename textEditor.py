@@ -709,6 +709,8 @@ class Textbox(QTextEdit):
 			# If chars were added, move the cursor to the right
 			self.prevCursorPos += charsAdded*2
 
+		print(f"Prev position: {self.prevCursorPos}")
+
 
 	# This function gets triggered when the listener thread receives an update from the server
 	def updateTextboxHandler(self, update):
@@ -720,11 +722,19 @@ class Textbox(QTextEdit):
 			dataToAdd = bytearray(update["UpdateMessage"]["Add"]["data"])
 			encodedText = self.toPlainText().encode("utf-16")
 			newText = encodedText[:offset+byteOrderSize] + dataToAdd + encodedText[offset+byteOrderSize:]
+			if self.prevCursorPos >= offset:
+				self.prevCursorPos += offset
 		elif "Remove" in update["UpdateMessage"]:
 			offset = update["UpdateMessage"]["Remove"]["offset"]
 			lenToRemove = update["UpdateMessage"]["Remove"]["len"]
 			encodedText = self.toPlainText().encode("utf-16")
 			newText = encodedText[:offset+byteOrderSize] + encodedText[offset+byteOrderSize+lenToRemove:]
+			if self.prevCursorPos >= offset:
+				temp = self.prevCursorPos - lenToRemove
+				if temp < offset:
+					self.prevCursorPos = offset
+				else:
+					self.prevCursorPos = temp
 		self.textDocument.setPlainText(newText.decode("utf-16"))
 		self.textDocument.blockSignals(False)
 
