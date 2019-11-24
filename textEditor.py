@@ -86,7 +86,7 @@ class textEditorWindow(QMainWindow):
 		fontName = qfont.family()
 		if len(self.openFiles) > 0:
 			self.updateFonts()
-		
+
 	def updateFontSizeIndex(self, qsize):
 		global fontSize
 		fontSize = int(self.fontSizes[qsize])
@@ -251,7 +251,7 @@ class textEditorWindow(QMainWindow):
 		self.connFileMap.remove(self.qlwConnSelect.currentItem().text())
 		self.qlwConnSelect.takeItem(self.qlwConnSelect.currentRow())
 		self.qlwFileSelect.clear()
-	
+
 	# Called when a new connection is selected
 	def refreshFileList(self, ip="", port=""):
 		if ip == False:
@@ -405,7 +405,7 @@ class textEditorWindow(QMainWindow):
 		self.editMenu = menuBar.addMenu('&Edit')
 		nameMenu = menuBar.addMenu('&Name')
 		users = menuBar.addMenu('&Users')
-		
+
 		openAct = QAction('&Open', self)
 		openAct.setShortcut('Ctrl+O')
 		openAct.triggered.connect(self.showOpenDialog)
@@ -461,7 +461,7 @@ class textEditorWindow(QMainWindow):
 		nameMenu.addAction(nameAction)
 
 		##Will be used to add new connections
-		
+
 		userAction = QAction('View Online Users', self, checkable=True)
 		userAction.setChecked(False)
 		userAction.triggered.connect(self.toggleOnline)
@@ -673,6 +673,7 @@ class Textbox(QTextEdit):
 		self.textDocument.blockSignals(False)
 
 	def updateCursorsHandler(self, update):
+		self.prevCursorPos = update["GetCursorsResp"]["Ok"][0]
 		userlist = []
 		self.unHighlightEverything()
 		userCursorPos = update["GetCursorsResp"]["Ok"][0]
@@ -700,10 +701,10 @@ class Textbox(QTextEdit):
 	# This functions executes everytime the contents of the textbox changes
 	def contentsChangeHandler(self, charPosition, charsRemoved, charsAdded):
 		print("charPosition = %d, charsRemoved = %d, charsAdded = %d" % (charPosition, charsRemoved, charsAdded))
-		
+
 		# Encode as UTF-16
 		encodedStringUtf16 = list(self.toPlainText().encode("utf-16"))[2:] # [2:] removes the byte order bytes
-		
+
 		# Move the cursor to charPosition
 		cursorDiff = charPosition*2 - self.prevCursorPos
 		print("cursorDiff = ", cursorDiff, " charPosition = ", charPosition, " self.prevCursorPos = ", self.prevCursorPos)
@@ -736,11 +737,19 @@ class Textbox(QTextEdit):
 			dataToAdd = bytearray(update["UpdateMessage"]["Add"]["data"])
 			encodedText = self.toPlainText().encode("utf-16")
 			newText = encodedText[:offset+byteOrderSize] + dataToAdd + encodedText[offset+byteOrderSize:]
+			if self.prevCursorPos >= offset:
+				self.prevCursorPos += offset
 		elif "Remove" in update["UpdateMessage"]:
 			offset = update["UpdateMessage"]["Remove"]["offset"]
 			lenToRemove = update["UpdateMessage"]["Remove"]["len"]
 			encodedText = self.toPlainText().encode("utf-16")
 			newText = encodedText[:offset+byteOrderSize] + encodedText[offset+byteOrderSize+lenToRemove:]
+			if self.prevCursorPos >= offset:
+				temp = self.prevCursorPos - lenToRemove
+				if temp < offset:
+					self.prevCursorPos = offset
+				else:
+					self.prevCursorPos = temp
 		self.textDocument.setPlainText(newText.decode("utf-16"))
 		self.textDocument.blockSignals(False)
 
