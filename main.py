@@ -9,11 +9,7 @@ class Controller:
 
     def __init__(self):
         pass
-    
-    def show_file_menu(self,): # The menu where we select a file
-        self.window = fileMenu.fileMenuWindow()
-        self.window.startEditing.connect(self.show_text_editor)
-        self.window.show()
+
 
     def show_text_editor(self): # The textbox
         self.text = textEditor.textEditorWindow()

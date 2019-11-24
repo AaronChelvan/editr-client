@@ -4,7 +4,6 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QAction, qAp
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from lib import *
-
 import json, string, socket, sys, threading, time
 
 listenerThread = None
@@ -16,7 +15,7 @@ fontSize = 14
 BUFFER_SIZE = 4096 * 10
 
 # The text editor window
-class textEditorWindow(QtWidgets.QMainWindow):
+class textEditorWindow(QMainWindow):
 
 	updateOpen = pyqtSignal(str)
 	removeOpen = pyqtSignal(object)
@@ -30,10 +29,8 @@ class textEditorWindow(QtWidgets.QMainWindow):
 		self.openFiles = []
 
 		self.connFileMap = {}
-		self.names = []
-		self.onlineIndex = 1
-		self.username = "Applejuice"
-
+		self.onlineIndex = 0
+		self.username = None
 		self.fileList = []
 		self.tabsNextIndex = 1
 
@@ -55,24 +52,8 @@ class textEditorWindow(QtWidgets.QMainWindow):
 		self.dockedWidget = QWidget(self)
 		self.docked.setWidget(self.dockedWidget)
 
-		fileusers = QGridLayout()
-		i = 0
-		y = 0
-		for x in self.names:
-			label = QLabel(x)
-			fileusers.addWidget(label, i, y)
-			i += 1
-			if i == 2:
-				y+=1
-				i = 0
-
-		onlineBox = QGroupBox()
-		onlineBox.setMaximumHeight(120)
-		onlineBox.setLayout(fileusers)
-
 		self.docklayout = QVBoxLayout()
 		self.docklayout.addStretch(1)
-		self.docklayout.insertWidget(0,onlineBox)
 		self.dockedWidget.setLayout(self.docklayout)
 		self.docked.hide()
 	# 	self.configureMenubarAndToolbar()
@@ -183,10 +164,10 @@ class textEditorWindow(QtWidgets.QMainWindow):
 		if clientSocket is None:
 			return
 		newTab = QWidget()
-		text = Textbox(clientSocket, fullName, self.tabsNextIndex)
+		text = Textbox(clientSocket, fullName, self.tabsNextIndex, self.updateOnline)
 		self.tabsNextIndex += 1
 		text.stopEditing.connect(self.removeTab)
-		
+
 		self.tabs.addTab(newTab, fullName)
 		# self.tabs.tabBar().tabCloseRequested.connect(text.stopEditingFunction)
 		newTab.layout = QVBoxLayout(self)
@@ -202,7 +183,7 @@ class textEditorWindow(QtWidgets.QMainWindow):
 
 		i = 0
 		y = 0
-		for x in self.names:
+		for x in text.names:
 			label = QLabel(x)
 			fileusers.addWidget(label, i, y)
 			i += 1
@@ -216,9 +197,9 @@ class textEditorWindow(QtWidgets.QMainWindow):
 		onlineBox.setTitle(fileName)
 
 		text.onlineBox = onlineBox
-
 		#self.docklayout.addWidget(onlineBox)
 		self.docklayout.insertWidget(self.onlineIndex, onlineBox)
+
 		self.onlineIndex += 1
 
 
@@ -283,7 +264,7 @@ class textEditorWindow(QtWidgets.QMainWindow):
 		lytModifyFile.addWidget(btnCreateFile)
 		lytModifyFile.addWidget(btnRenameFile)
 		lytModifyFile.addWidget(btnDeleteFile)
-		
+
 		### Adding to File List Layout
 		lytFileList.addWidget(self.qlwFileSelect)
 		lytFileList.addStretch(2)
@@ -384,7 +365,7 @@ class textEditorWindow(QtWidgets.QMainWindow):
 		if fullName in self.openFiles:
 			showErrorMessage("File is already open!")
 		else:
-			response = sendMessage(clientSocket, True, "open", fileName)
+			response = sendMessage(clientSocket, True, "open", fileName, self.username)
 			if "Err" in response["OpenResp"]:
 				showErrorMessage(response["OpenResp"]["Err"])
 				return None
@@ -444,7 +425,7 @@ class textEditorWindow(QtWidgets.QMainWindow):
 			else:
 				showSuccessMessage("Deleted \"%s\"" % fileName)
 				self.refreshFileList()
-		
+
 	def readFromLists(self, requireFileSelection=True):
 		if len(self.qlwConnSelect.selectedItems()) == 0:
 			return ("","","","")
@@ -480,7 +461,7 @@ class textEditorWindow(QtWidgets.QMainWindow):
 
 		##Will be used to add new connections
 		users = menubar.addMenu('&Users')
-		
+
 		userAction = QAction('View Online Users', self, checkable=True)
 		userAction.setChecked(False)
 		userAction.triggered.connect(self.toggleOnline)
@@ -507,39 +488,43 @@ class textEditorWindow(QtWidgets.QMainWindow):
 		if not state:
 			self.docked.hide()
 
-	#Does nothing for the second,will need to make this so I can update the online list
-	#Either remake the layout or just remove the labels, but that would need the grid to be rearranged
-def updateOnline(self):
-		for textbox in self.textBoxList:
-			if not textbox.namesChanged:
-				return
-			textbox.onlineBox.close()
+	def updateOnline(self, textbox, userlist):
+		userlist.sort()
+		if userlist == textbox.names:
+			return
+		index = self.docklayout.indexOf(textbox.onlineBox)
+		textbox.onlineBox.close()
 
-			fileusers = QGridLayout()
-			i = 0
-			y = 0
-			for x in textbox.names:
-				label = QLabel(x)
-				fileusers.addWidget(label, i, y)
-				i += 1
-				if i == 2:
-					y += 1
-					i = 0
+		fileusers = QGridLayout()
+		i = 0
+		y = 0
+		count = 0
+		for x in userlist:
+			if x == self.username and count == 0:
+				count+=1
+				continue
 
-			onlineBox = QGroupBox()
-			onlineBox.setMaximumHeight(120)
-			onlineBox.setLayout(fileusers)
-			onlineBox.setTitle(textbox.fullName)
-			textbox.onlineBox = onlineBox
+			label = QLabel(x)
+			fileusers.addWidget(label, i, y)
+			i += 1
+			if i == 2:
+				y += 1
+				i = 0
 
-			self.docklayout.insertWidget(self.onlineIndex, onlineBox)
-			textbox.namesChanged = False
+		onlineBox = QGroupBox()
+		onlineBox.setMaximumHeight(120)
+		onlineBox.setLayout(fileusers)
+		onlineBox.setTitle(textbox.fullName)
+		textbox.onlineBox = onlineBox
+
+		self.docklayout.insertWidget(index, onlineBox)
+		textbox.names = userlist
 
 # The textbox where the file contents will be displayed
 class Textbox(QTextEdit):
 	# Constructor
 	stopEditing = pyqtSignal(int, object)
-	def __init__(self, clientSocket, fullName, index):
+	def __init__(self, clientSocket, fullName, index, updateOnline):
 		super(Textbox, self).__init__()
 		self.clientSocket = clientSocket # Save the socket
 		self.fullName = fullName
@@ -549,7 +534,8 @@ class Textbox(QTextEdit):
 		i = 0
 		self.onlineBox = None
 		self.names = []
-		self.namesChanged = False
+		self.updateOnline = updateOnline
+
 		while True:
 			response = sendMessage(self.clientSocket, True, "read", 0 + i*readLength, readLength)
 			fileContentsPart = response["ReadResp"]["Ok"]
@@ -572,14 +558,97 @@ class Textbox(QTextEdit):
 		# Start detecting edits made to the textbox contents
 		self.textDocument.contentsChange.connect(self.contentsChangeHandler)
 
+		# Detect when the position of the cursor changes
+		#self.cursorPositionChanged.connect(self.cursorPositionChangedHandler)
+
 		# Make the socket non-blocking
 		self.clientSocket.setblocking(False)
+
+		# For sending the server the position of the cursor
+		self.prevCursorPos = 0
 
 		# Start the listener thread
 		global listenerThread
 		listenerThread = ListenerThread(self.clientSocket)
 		listenerThread.updateTextbox.connect(self.updateTextboxHandler)
+		listenerThread.updateCursors.connect(self.updateCursorsHandler)
 		listenerThread.start()
+
+	#def cursorPositionChangedHandler(self):
+	#	cursorPos = self.textCursor().position()
+	#	print(cursorPos)
+	#	cursorDiff = cursorPos - self.prevCursorPos
+	#	self.prevCursorPos = cursorPos
+	#	if cursorDiff != 0:
+	#		sendMessage(self.clientSocket, False, "moveCursor", cursorDiff*2)
+
+	#	sendMessage(self.clientSocket, False, "getCursors")
+		#print(cursorPos)
+		#self.unHighlightChar(self.prevCursorPos)
+		#self.highlightChar(cursorPos)
+
+		#self.unHighlightChar(cursorPos)
+		#self.textDocument.blockSignals(True)
+		#self.textCursor().insertText("asd")
+		#self.textDocument.blockSignals(False)
+		#self.setTextBackgroundColor(QColor("black"))
+
+	# TODO
+	def highlightChar(self, position):
+		self.textDocument.blockSignals(True)
+		self.blockSignals(True)
+		prevPosition = self.textCursor().position()
+		cursor = self.textCursor()
+		#if prevPosition == len(self.toPlainText()):
+		#	prevPosition -= 1
+		#print("prevPositon = ", prevPosition)
+
+		cursor.setPosition(position)
+		self.setTextCursor(cursor)
+		self.textCursor().setPosition(position)
+		#print("newPosition = ", self.textCursor().position(), " position = ", position)
+
+		# Delete the existing char
+		prevChar = self.toPlainText().encode("utf-16")[position]
+		self.textCursor().deleteChar()
+		#print("char to highlight = ", prevChar)
+
+		# Change the background colour
+		self.setTextBackgroundColor(QColor("red"))
+
+		# Put the char back
+		self.textCursor().insertText(prevChar)
+
+		# Restore the cursor and the background colour
+		self.setTextBackgroundColor(QColor("black"))
+
+		cursor.setPosition(prevPosition)
+		self.setTextCursor(cursor)
+		self.blockSignals(False)
+		self.textDocument.blockSignals(False)
+
+	def unHighlightEverything(self):
+		self.textDocument.blockSignals(True)
+		self.blockSignals(True)
+		prevPos = self.textCursor().position()
+		cursor = self.textCursor()
+		self.textDocument.setPlainText(self.textDocument.toPlainText())
+		cursor.setPosition(prevPos)
+		self.setTextCursor(cursor)
+		self.blockSignals(False)
+		self.textDocument.blockSignals(False)
+
+	def updateCursorsHandler(self, update):
+		userlist = []
+		self.unHighlightEverything()
+		for cursor in update["GetCursorsResp"]["Ok"][1]:
+			pos = cursor[0]
+			username = cursor[1]
+			if (not username is None) and (not username == ""):
+				userlist.append(username)
+			print("pos = ", pos, " username = ", username)
+			#self.highlightChar(pos)
+		self.updateOnline(self,userlist)
 
 	# This functions executes everytime the contents of the textbox changes
 	def contentsChangeHandler(self, charPosition, charsRemoved, charsAdded):
@@ -588,17 +657,30 @@ class Textbox(QTextEdit):
 		# Encode as UTF-16
 		encodedStringUtf16 = list(self.toPlainText().encode("utf-16"))[2:] # [2:] removes the byte order bytes
 		
+		# Move the cursor to charPosition
+		cursorDiff = charPosition*2 - self.prevCursorPos
+		print("cursorDiff = ", cursorDiff, " charPosition = ", charPosition, " self.prevCursorPos = ", self.prevCursorPos)
+		self.prevCursorPos = charPosition*2
+		if cursorDiff != 0:
+			sendMessage(self.clientSocket, False, "moveCursor", cursorDiff)
+
 		# charPosition, charsRemoved, and charsAdded all need to be multiplied by 2 since
 		# each char is represented by 2 bytes
 		if charsRemoved > 0:
-			sendMessage(self.clientSocket, False, "remove", charPosition*2, charsRemoved*2)
+			sendMessage(self.clientSocket, False, "remove", charsRemoved*2)
 		if charsAdded > 0:
 			bytesToAdd = encodedStringUtf16[charPosition*2: charPosition*2 + charsAdded*2]
-			sendMessage(self.clientSocket, False, "write", charPosition*2, bytesToAdd)
+			# TODO split up writes into multiple smaller writes less than the buffer size
+			sendMessage(self.clientSocket, False, "write", bytesToAdd)
+
+			# If chars were added, move the cursor to the right
+			self.prevCursorPos += charsAdded*2
+
 
 	# This function gets triggered when the listener thread receives an update from the server
 	def updateTextboxHandler(self, update):
 		self.textDocument.blockSignals(True)
+		print(update)
 		byteOrderSize = 2
 		if "Add" in update["UpdateMessage"]:
 			offset = update["UpdateMessage"]["Add"]["offset"]
@@ -612,6 +694,9 @@ class Textbox(QTextEdit):
 			newText = encodedText[:offset+byteOrderSize] + encodedText[offset+byteOrderSize+lenToRemove:]
 		self.textDocument.setPlainText(newText.decode("utf-16"))
 		self.textDocument.blockSignals(False)
+
+		# Request the new cursor positions
+		sendMessage(self.clientSocket, False, "getCursors")
 
 	def stopEditingFunction(self,index):
 		# Stop the listener thread
@@ -635,6 +720,7 @@ class Textbox(QTextEdit):
 # This thread constantly checks for updates from the server
 class ListenerThread(QThread):
 	updateTextbox = pyqtSignal(object)
+	updateCursors = pyqtSignal(object)
 
 	def __init__(self, clientSocket):
 		super(ListenerThread, self).__init__()
@@ -645,6 +731,7 @@ class ListenerThread(QThread):
 		while True:
 			try:
 				data = self.clientSocket.recv(BUFFER_SIZE)
+				print(data)
 
 				# The client may have received multiple responses, so we need to split them
 				count = 0
@@ -656,6 +743,8 @@ class ListenerThread(QThread):
 				for o in listObjects:
 					if "UpdateMessage" in o:
 						self.updateTextbox.emit(o) # Signal to the textbox that we have received an update
+					elif "GetCursorsResp" in o:
+						self.updateCursors.emit(o)
 			except socket.error:
 				time.sleep(0.1)
 
