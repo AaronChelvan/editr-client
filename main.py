@@ -14,20 +14,6 @@ class Controller:
     def show_text_editor(self): # The textbox
         self.text = textEditor.textEditorWindow()
         self.text.show()
-        # text.updateOpen.connect(self.updateOpenFiles)
-        # text.removeOpen.connect(self.removeOpenFiles)
-        # self.window.appendTextList(text)
-        
-
-    # def updateTextList(self, listFiles):
-    #     for object in self.window.textlist:
-    #         object.setFileList(listFiles)
-
-    # def updateOpenFiles(self, fileName):
-    #     self.text.updateOpenFiles(fileName)
-
-    # def removeOpenFiles(self,fileNameList):
-    #     self.text.removeOpenFiles(fileNameList)
 
 # The colour scheme
 def palette():
