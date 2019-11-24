@@ -27,7 +27,7 @@ class textEditorWindow(QMainWindow):
 		self.openFiles = []
 		self.openDialog = QDialog(parent=self)
 		self.openDialog.setModal(True)
-		self.connFileMap = {}
+		self.connFileMap = []
 		self.onlineIndex = 0
 		self.username = None
 		self.fileList = []
@@ -154,14 +154,19 @@ class textEditorWindow(QMainWindow):
 		self.qlwConnSelect.setFixedSize(300,150)
 		self.qlwConnSelect.itemSelectionChanged.connect(self.refreshFileList)
 		## Middle: +/- buttons
-		lytAddRemoveConn = QVBoxLayout(self)
+		lytConnSettings = QVBoxLayout(self)
 		btnAddConnection = QPushButton("+")
 		btnAddConnection.setFixedSize(25,25)
 		btnAddConnection.clicked.connect(self.addConnection)
+		btnRefreshConnection = QPushButton("↻")
+		btnRefreshConnection.setFixedSize(25,25)
+		btnRefreshConnection.clicked.connect(self.refreshFileList)
 		btnRemoveConnection = QPushButton("-")
 		btnRemoveConnection.setFixedSize(25,25)
-		lytAddRemoveConn.addWidget(btnAddConnection)
-		lytAddRemoveConn.addWidget(btnRemoveConnection)
+		btnRemoveConnection.clicked.connect(self.removeConnection)
+		lytConnSettings.addWidget(btnAddConnection)
+		lytConnSettings.addWidget(btnRefreshConnection)
+		lytConnSettings.addWidget(btnRemoveConnection)
 		## Right: Host/Port Inputs
 		lblHost = QLabel("Host", self)
 		self.lneHost = QLineEdit(parent=self)
@@ -169,16 +174,16 @@ class textEditorWindow(QMainWindow):
 		lblPort = QLabel("Port", self)
 		self.lnePort = QLineEdit(parent=self)
 		self.lnePort.placeholderText = 'Port'
-		lytHostPort = QVBoxLayout(self)
-		lytHostPort.addWidget(lblHost)
-		lytHostPort.addWidget(self.lneHost)
-		lytHostPort.addWidget(lblPort)
-		lytHostPort.addWidget(self.lnePort)
+		lytNewConn = QVBoxLayout(self)
+		lytNewConn.addWidget(lblHost)
+		lytNewConn.addWidget(self.lneHost)
+		lytNewConn.addWidget(lblPort)
+		lytNewConn.addWidget(self.lnePort)
 		### Adding to Connection Layout
 		lytConnection.addWidget(self.qlwConnSelect)
-		lytConnection.addLayout(lytAddRemoveConn)
+		lytConnection.addLayout(lytConnSettings)
 		lytConnection.addStretch(1)
-		lytConnection.addLayout(lytHostPort)
+		lytConnection.addLayout(lytNewConn)
 		lytConnection.addStretch(1)
 		####################
 		## File Selection ##
@@ -222,19 +227,17 @@ class textEditorWindow(QMainWindow):
 		port = self.lnePort.text()
 		# print("host = %s, port = %s"% (host, port))
 		# Check if the port number is valid
-		if not port.isdigit():
-			showErrorMessage("Invalid port number")
+		if not port.isdigit() or host == "":
+			showErrorMessage("Invalid host or port")
 			return
 		# Attempt to connect to the server
 		combinedName = host + ":" + port
 		# If this is already an existing connection
 		if combinedName in self.connFileMap:
 			return
-
-		self.refreshFileList(ip=host, port=port)
-		# If the refreshFileList operation failed
-		if combinedName not in self.connFileMap:
+		if self.refreshFileList(ip=host, port=port) != True:
 			return
+		self.connFileMap.append(combinedName)
 		self.lneHost.setText('')
 		self.lnePort.setText('')
 		qliNewConn = QListWidgetItem()
@@ -242,14 +245,24 @@ class textEditorWindow(QMainWindow):
 		self.qlwConnSelect.addItem(qliNewConn)
 		self.qlwConnSelect.setCurrentItem(qliNewConn)
 
+	def removeConnection(self):
+		if len(self.qlwConnSelect.selectedItems()) == 0:
+			return
+		self.connFileMap.remove(self.qlwConnSelect.currentItem().text())
+		self.qlwConnSelect.takeItem(self.qlwConnSelect.currentRow())
+		self.qlwFileSelect.clear()
 	
 	# Called when a new connection is selected
 	def refreshFileList(self, ip="", port=""):
-		if ip=="" and port=="":
+		if ip == False:
+			ip = ""
+		print("here1")
+		if ip=="" or port=="":
 			if len(self.qlwConnSelect.selectedItems()) == 0:
 				return
 			ip, port = self.qlwConnSelect.currentItem().text().split(':')
 		combinedName = ip + ":" + port
+		print("here2")
 		# If this is the first refresh
 		clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		try:
@@ -257,14 +270,18 @@ class textEditorWindow(QMainWindow):
 		except socket.error:
 			showErrorMessage("Failed to connect")
 			return
+		print("here3")
 		response = sendMessage(clientSocket, True, "getFiles")
 		if "Err" in response["FilesListResp"]:
 			self.showErrorMessage(response["FilesListResp"]["Err"])
 			return
-		self.connFileMap[combinedName] = sorted(response["FilesListResp"]["Ok"])
+		print("here4")
+		files = sorted(response["FilesListResp"]["Ok"])
+		print("we made it here!")
 		self.qlwFileSelect.clear()
-		for file in self.connFileMap[combinedName]:
+		for file in files:
 			self.qlwFileSelect.addItem(file)
+		return True
 
 	def removeTab(self, index, text):
 		self.tabs.removeTab(index)
@@ -332,7 +349,6 @@ class textEditorWindow(QMainWindow):
 		if "Err" in response["CreateResp"]:
 			showErrorMessage(response["CreateResp"]["Err"])
 		else:
-			showSuccessMessage("\"%s\" created" % newName)
 			self.refreshFileList()
 
 	def renameFile(self):
@@ -349,7 +365,6 @@ class textEditorWindow(QMainWindow):
 				if "Err" in response["RenameResp"]:
 					showErrorMessage(response["RenameResp"]["Err"])
 				else:
-					showSuccessMessage("Renamed \"%s\" to \"%s\"" % (fileName, newName))
 					newFullName = ip + ":" + port + " " + newName
 					self.refreshFileList()
 			else:
@@ -369,7 +384,6 @@ class textEditorWindow(QMainWindow):
 			if "Err" in response["DeleteResp"]:
 				showErrorMessage(response["DeleteResp"]["Err"])
 			else:
-				showSuccessMessage("Deleted \"%s\"" % fileName)
 				self.refreshFileList()
 
 	def readFromLists(self, requireFileSelection=True):
