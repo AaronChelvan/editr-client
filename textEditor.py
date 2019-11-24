@@ -99,7 +99,6 @@ class textEditorWindow(QMainWindow):
 
 	def createNewTab(self):
 		ip, port, fileName, fullName = self.readFromLists()
-		print(ip + "|" + port + "|" + fileName + "|" + fullName)
 		if (ip == ""):
 			return
 		clientSocket = self.createFileSocket(ip, port, fileName)
@@ -257,13 +256,11 @@ class textEditorWindow(QMainWindow):
 	def refreshFileList(self, ip="", port=""):
 		if ip == False:
 			ip = ""
-		print("here1")
 		if ip=="" or port=="":
 			if len(self.qlwConnSelect.selectedItems()) == 0:
 				return
 			ip, port = self.qlwConnSelect.currentItem().text().split(':')
 		combinedName = ip + ":" + port
-		print("here2")
 		# If this is the first refresh
 		clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		try:
@@ -271,14 +268,11 @@ class textEditorWindow(QMainWindow):
 		except socket.error:
 			showErrorMessage("Failed to connect")
 			return
-		print("here3")
 		response = sendMessage(clientSocket, True, "getFiles")
 		if "Err" in response["FilesListResp"]:
 			self.showErrorMessage(response["FilesListResp"]["Err"])
 			return
-		print("here4")
 		files = sorted(response["FilesListResp"]["Ok"])
-		print("we made it here!")
 		self.qlwFileSelect.clear()
 		for file in files:
 			self.qlwFileSelect.addItem(file)
