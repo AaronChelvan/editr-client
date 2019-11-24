@@ -163,7 +163,7 @@ class Textbox(QTextEdit):
 		self.textDocument.contentsChange.connect(self.contentsChangeHandler)
 
 		# Detect when the position of the cursor changes
-		self.cursorPositionChanged.connect(self.cursorPositionChangedHandler)
+		#self.cursorPositionChanged.connect(self.cursorPositionChangedHandler)
 
 		# Make the socket non-blocking
 		self.clientSocket.setblocking(False)
@@ -175,17 +175,18 @@ class Textbox(QTextEdit):
 		global listenerThread
 		listenerThread = ListenerThread(self.clientSocket)
 		listenerThread.updateTextbox.connect(self.updateTextboxHandler)
+		#listenerThread.updateCursors.connect(self.updateCursorsHandler)
 		listenerThread.start()
 
-	def cursorPositionChangedHandler(self):
-		cursorPos = self.textCursor().position()
-		print(cursorPos)
-		cursorDiff = cursorPos - self.prevCursorPos
-		self.prevCursorPos = cursorPos
-		if cursorDiff != 0:
-			sendMessage(self.clientSocket, False, "moveCursor", cursorDiff*2)
+	#def cursorPositionChangedHandler(self):
+	#	cursorPos = self.textCursor().position()
+	#	print(cursorPos)
+	#	cursorDiff = cursorPos - self.prevCursorPos
+	#	self.prevCursorPos = cursorPos
+	#	if cursorDiff != 0:
+	#		sendMessage(self.clientSocket, False, "moveCursor", cursorDiff*2)
 
-		sendMessage(self.clientSocket, False, "getCursors")
+	#	sendMessage(self.clientSocket, False, "getCursors")
 		#print(cursorPos)
 		#self.unHighlightChar(self.prevCursorPos)
 		#self.highlightChar(cursorPos)
@@ -228,29 +229,47 @@ class Textbox(QTextEdit):
 		self.blockSignals(False)
 		self.textDocument.blockSignals(False)
 
+	def updateCursorsHandler(self, update):
+		#curso
+		self.unHighlightEverything()
+		for cursor in update["GetCursorsResp"]["Ok"][1]:
+			pos = cursor[0]
+			username = cursor[1]
+			print("pos = ", pos, " username = ", username)
+			self.highlightChar(pos)
 
 	# This functions executes everytime the contents of the textbox changes
 	def contentsChangeHandler(self, charPosition, charsRemoved, charsAdded):
 		print("charPosition = %d, charsRemoved = %d, charsAdded = %d" % (charPosition, charsRemoved, charsAdded))
-
-		#curso
-		#self.unHighlightEverything()
-		#self.highlightChar(cursorPos)
 		
 		# Encode as UTF-16
 		encodedStringUtf16 = list(self.toPlainText().encode("utf-16"))[2:] # [2:] removes the byte order bytes
 		
+		sendMessage(self.clientSocket, False, "getCursors")
+
+		# Move the cursor to charPosition
+		cursorDiff = charPosition*2 - self.prevCursorPos
+		print("cursorDiff = ", cursorDiff, " charPosition = ", charPosition, " self.prevCursorPos = ", self.prevCursorPos)
+		self.prevCursorPos = charPosition*2
+		if cursorDiff != 0:
+			sendMessage(self.clientSocket, False, "moveCursor", cursorDiff)
+
 		# charPosition, charsRemoved, and charsAdded all need to be multiplied by 2 since
 		# each char is represented by 2 bytes
 		if charsRemoved > 0:
 			sendMessage(self.clientSocket, False, "remove", charsRemoved*2)
 		if charsAdded > 0:
 			bytesToAdd = encodedStringUtf16[charPosition*2: charPosition*2 + charsAdded*2]
+			# TODO split up writes into multiple smaller writes less than the buffer size
 			sendMessage(self.clientSocket, False, "write", bytesToAdd)
+
+			# If chars were added, move the cursor to the right
+			self.prevCursorPos += charsAdded*2
 
 	# This function gets triggered when the listener thread receives an update from the server
 	def updateTextboxHandler(self, update):
 		self.textDocument.blockSignals(True)
+		print(update)
 		byteOrderSize = 2
 		if "Add" in update["UpdateMessage"]:
 			offset = update["UpdateMessage"]["Add"]["offset"]
@@ -268,6 +287,7 @@ class Textbox(QTextEdit):
 # This thread constantly checks for updates from the server
 class ListenerThread(QThread):
 	updateTextbox = pyqtSignal(object)
+	updateCursors = pyqtSignal(object)
 
 	def __init__(self, clientSocket):
 		super(ListenerThread, self).__init__()
@@ -278,6 +298,7 @@ class ListenerThread(QThread):
 		while True:
 			try:
 				data = self.clientSocket.recv(BUFFER_SIZE)
+				print(data)
 
 				# The client may have received multiple responses, so we need to split them
 				count = 0
@@ -289,6 +310,8 @@ class ListenerThread(QThread):
 				for o in listObjects:
 					if "UpdateMessage" in o:
 						self.updateTextbox.emit(o) # Signal to the textbox that we have received an update
+					elif "GetCursorsResp" in o:
+						self.updateCursors.emit(o)
 			except socket.error:
 				time.sleep(0.1)
 
