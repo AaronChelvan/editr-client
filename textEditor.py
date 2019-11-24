@@ -10,7 +10,7 @@ listenerThread = None
 fontName = 'Lucida Console'
 fontSize = 14
 
-BUFFER = 4096 * 10
+BUFFER_SIZE = 4096 * 10
 
 # The text editor window
 class textEditorWindow(QMainWindow):
@@ -374,7 +374,7 @@ class textEditorWindow(QMainWindow):
 			if fileName in open:
 				showErrorMessage("File is already open!")
 			else:
-				response = sendMessage(clientSocket, True, "open", fileName)
+				response = sendMessage(clientSocket, True, "open", fileName, None)
 				if "Err" in response["OpenResp"]:
 					showErrorMessage(response["OpenResp"]["Err"])
 					return None
@@ -392,7 +392,7 @@ class textEditorWindow(QMainWindow):
 		if fileName in open:
 			showErrorMessage("File is already open!")
 		else:
-			response = sendMessage(clientSocket, True, "open", fileName)
+			response = sendMessage(clientSocket, True, "open", fileName, None)
 			if "Err" in response["OpenResp"]:
 				showErrorMessage(response["OpenResp"]["Err"])
 				return None
@@ -465,7 +465,7 @@ class Textbox(QTextEdit):
 
 		self.fileName = fileName
 		# Read the file contents and display it in the textbox
-		fileContents = ""
+		fileContentsBytes = []
 		readLength = 100
 		i = 0
 		self.onlineBox = None
@@ -475,11 +475,12 @@ class Textbox(QTextEdit):
 		while True:
 			response = sendMessage(self.clientSocket, True, "read", 0 + i*readLength, readLength)
 			fileContentsPart = response["ReadResp"]["Ok"]
-			fileContentsPart = bytearray(fileContentsPart).decode("utf-8")
-			fileContents += fileContentsPart
+			fileContentsBytes += fileContentsPart
 			if len(fileContentsPart) < readLength: # If we have reached the end of the file
 				break
 			i += 1
+		byteOrder = b"\xff\xfe" # UTF-16 byte order
+		fileContents = (byteOrder + bytearray(fileContentsBytes)).decode("utf-16")
 
 		# Create a text document object
 		self.textDocument = QTextDocument()
@@ -487,38 +488,147 @@ class Textbox(QTextEdit):
 		self.textDocument.setDefaultFont(QFont(fontName, fontSize)) # Set the font
 		self.setDocument(self.textDocument)
 
+		# Do not accept rich text
+		self.setAcceptRichText(False)
+
 		# Start detecting edits made to the textbox contents
 		self.textDocument.contentsChange.connect(self.contentsChangeHandler)
 
+		# Detect when the position of the cursor changes
+		#self.cursorPositionChanged.connect(self.cursorPositionChangedHandler)
+
 		# Make the socket non-blocking
 		self.clientSocket.setblocking(False)
+
+		# For sending the server the position of the cursor
+		self.prevCursorPos = 0
 
 		# Start the listener thread
 		global listenerThread
 		listenerThread = ListenerThread(self.clientSocket)
 		listenerThread.updateTextbox.connect(self.updateTextboxHandler)
+		listenerThread.updateCursors.connect(self.updateCursorsHandler)
 		listenerThread.start()
 
-	# This functions executes everytime the contents of the textbox changes
-	def contentsChangeHandler(self, position, charsRemoved, charsAdded):
-		if charsRemoved > 0:
-			sendMessage(self.clientSocket, False, "remove", position, charsRemoved)
-		if charsAdded > 0:
-			sendMessage(self.clientSocket, False, "write", position, self.toPlainText()[position: position+charsAdded])
+	#def cursorPositionChangedHandler(self):
+	#	cursorPos = self.textCursor().position()
+	#	print(cursorPos)
+	#	cursorDiff = cursorPos - self.prevCursorPos
+	#	self.prevCursorPos = cursorPos
+	#	if cursorDiff != 0:
+	#		sendMessage(self.clientSocket, False, "moveCursor", cursorDiff*2)
 
-	# This function gets triggered when the listener thread receives an update
+	#	sendMessage(self.clientSocket, False, "getCursors")
+		#print(cursorPos)
+		#self.unHighlightChar(self.prevCursorPos)
+		#self.highlightChar(cursorPos)
+		
+		#self.unHighlightChar(cursorPos)
+		#self.textDocument.blockSignals(True)
+		#self.textCursor().insertText("asd")
+		#self.textDocument.blockSignals(False)
+		#self.setTextBackgroundColor(QColor("black"))
+
+	# TODO
+	def highlightChar(self, position):
+		self.textDocument.blockSignals(True)
+		self.blockSignals(True)
+		prevPosition = self.textCursor().position()
+		cursor = self.textCursor()
+		#if prevPosition == len(self.toPlainText()):
+		#	prevPosition -= 1
+		#print("prevPositon = ", prevPosition)
+
+		cursor.setPosition(position)
+		self.setTextCursor(cursor)
+		self.textCursor().setPosition(position)
+		#print("newPosition = ", self.textCursor().position(), " position = ", position)
+
+		# Delete the existing char
+		prevChar = self.toPlainText().encode("utf-16")[position]
+		self.textCursor().deleteChar()
+		#print("char to highlight = ", prevChar)
+
+		# Change the background colour
+		self.setTextBackgroundColor(QColor("red"))
+
+		# Put the char back
+		self.textCursor().insertText(prevChar)
+		
+		# Restore the cursor and the background colour
+		self.setTextBackgroundColor(QColor("black"))
+
+		cursor.setPosition(prevPosition)
+		self.setTextCursor(cursor)
+		self.blockSignals(False)
+		self.textDocument.blockSignals(False)
+
+	def unHighlightEverything(self):
+		self.textDocument.blockSignals(True)
+		self.blockSignals(True)
+		prevPos = self.textCursor().position()
+		cursor = self.textCursor()
+		self.textDocument.setPlainText(self.textDocument.toPlainText())
+		cursor.setPosition(prevPos)
+		self.setTextCursor(cursor)
+		self.blockSignals(False)
+		self.textDocument.blockSignals(False)
+
+	def updateCursorsHandler(self, update):
+		self.unHighlightEverything()
+		for cursor in update["GetCursorsResp"]["Ok"][1]:
+			pos = cursor[0]
+			username = cursor[1]
+			print("pos = ", pos, " username = ", username)
+			#self.highlightChar(pos)
+
+	# This functions executes everytime the contents of the textbox changes
+	def contentsChangeHandler(self, charPosition, charsRemoved, charsAdded):
+		print("charPosition = %d, charsRemoved = %d, charsAdded = %d" % (charPosition, charsRemoved, charsAdded))
+		
+		# Encode as UTF-16
+		encodedStringUtf16 = list(self.toPlainText().encode("utf-16"))[2:] # [2:] removes the byte order bytes
+		
+		# Move the cursor to charPosition
+		cursorDiff = charPosition*2 - self.prevCursorPos
+		print("cursorDiff = ", cursorDiff, " charPosition = ", charPosition, " self.prevCursorPos = ", self.prevCursorPos)
+		self.prevCursorPos = charPosition*2
+		if cursorDiff != 0:
+			sendMessage(self.clientSocket, False, "moveCursor", cursorDiff)
+
+		# charPosition, charsRemoved, and charsAdded all need to be multiplied by 2 since
+		# each char is represented by 2 bytes
+		if charsRemoved > 0:
+			sendMessage(self.clientSocket, False, "remove", charsRemoved*2)
+		if charsAdded > 0:
+			bytesToAdd = encodedStringUtf16[charPosition*2: charPosition*2 + charsAdded*2]
+			# TODO split up writes into multiple smaller writes less than the buffer size
+			sendMessage(self.clientSocket, False, "write", bytesToAdd)
+
+			# If chars were added, move the cursor to the right
+			self.prevCursorPos += charsAdded*2
+
+
+	# This function gets triggered when the listener thread receives an update from the server
 	def updateTextboxHandler(self, update):
 		self.textDocument.blockSignals(True)
+		print(update)
+		byteOrderSize = 2
 		if "Add" in update["UpdateMessage"]:
 			offset = update["UpdateMessage"]["Add"]["offset"]
-			dataToAdd = bytearray(update["UpdateMessage"]["Add"]["data"]).decode("utf-8")
-			newText = self.toPlainText()[:offset] + dataToAdd + self.toPlainText()[offset:]
+			dataToAdd = bytearray(update["UpdateMessage"]["Add"]["data"])
+			encodedText = self.toPlainText().encode("utf-16")
+			newText = encodedText[:offset+byteOrderSize] + dataToAdd + encodedText[offset+byteOrderSize:]
 		elif "Remove" in update["UpdateMessage"]:
 			offset = update["UpdateMessage"]["Remove"]["offset"]
 			lenToRemove = update["UpdateMessage"]["Remove"]["len"]
-			newText = self.toPlainText()[:offset] + self.toPlainText()[offset+lenToRemove:]
-		self.textDocument.setPlainText(newText)
+			encodedText = self.toPlainText().encode("utf-16")
+			newText = encodedText[:offset+byteOrderSize] + encodedText[offset+byteOrderSize+lenToRemove:]
+		self.textDocument.setPlainText(newText.decode("utf-16"))
 		self.textDocument.blockSignals(False)
+		
+		# Request the new cursor positions
+		sendMessage(self.clientSocket, False, "getCursors")
 
 	def stopEditingFunction(self,index):
 		# Stop the listener thread
@@ -542,6 +652,7 @@ class Textbox(QTextEdit):
 # This thread constantly checks for updates from the server
 class ListenerThread(QThread):
 	updateTextbox = pyqtSignal(object)
+	updateCursors = pyqtSignal(object)
 
 	def __init__(self, clientSocket):
 		super(ListenerThread, self).__init__()
@@ -551,7 +662,8 @@ class ListenerThread(QThread):
 		decoder = json.JSONDecoder()
 		while True:
 			try:
-				data = self.clientSocket.recv(BUFFER)
+				data = self.clientSocket.recv(BUFFER_SIZE)
+				print(data)
 
 				# The client may have received multiple responses, so we need to split them
 				count = 0
@@ -563,6 +675,8 @@ class ListenerThread(QThread):
 				for o in listObjects:
 					if "UpdateMessage" in o:
 						self.updateTextbox.emit(o) # Signal to the textbox that we have received an update
+					elif "GetCursorsResp" in o:
+						self.updateCursors.emit(o)
 			except socket.error:
 				time.sleep(0.1)
 

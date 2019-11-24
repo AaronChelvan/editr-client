@@ -5,16 +5,15 @@ import json
 def sendMessage(clientSocket, getResponse, *args):
 	message = {}
 	if args[0] == "open":
-		message["OpenReq"] = args[1]
+		message["OpenReq"] = {"file":args[1], "name":args[2]}
 	elif args[0] == "close":
 		message = "CloseReq"
 	elif args[0] == "write":
-		data = list(bytes(args[2], "utf-8"))
-		message["WriteReq"] = {"offset": args[1], "data": data}
+		message["WriteAtCursorReq"] = {"data": args[1]}
 	elif args[0] == "read":
 		message["ReadReq"] = {"offset": args[1], "len": args[2]}
 	elif args[0] == "remove":
-		message["RemoveReq"] = {"offset": args[1], "len": args[2]}
+		message["RemoveAtCursorReq"] = {"len": args[1]}
 	elif args[0] == "save":
 		message = "SaveReq"
 	elif args[0] == "create":
@@ -25,6 +24,10 @@ def sendMessage(clientSocket, getResponse, *args):
 		message["RenameReq"] = {"from": args[1], "to": args[2]}
 	elif args[0] == "getFiles":
 		message = "FilesListReq"
+	elif args[0] == "moveCursor":
+		message["MoveCursor"] = args[1]
+	elif args[0] == "getCursors":
+		message = "GetCursorsReq"
 	else:
 		print("Unknown operation")
 		exit()
@@ -37,7 +40,7 @@ def sendMessage(clientSocket, getResponse, *args):
 
 	# Wait for an ack
 	if getResponse == True:
-		response = clientSocket.recv(1024)
+		response = clientSocket.recv(40960)
 		responseDict = json.loads(response.decode())
 		print(responseDict)
 		return responseDict
