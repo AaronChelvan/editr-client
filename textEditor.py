@@ -72,11 +72,7 @@ class textEditorWindow(QMainWindow):
 		fontSizeSelect.move(150,0)
 		fontSizeSelect.addItems(self.fontSizes)
 		fontSizeSelect.setCurrentIndex(6)
-		# fontSizeSelect.setEditable(True)
-		# fontSizeSelect.setValidator(QIntValidator(1,1638))
 		fontSizeSelect.currentIndexChanged.connect(self.updateFontSizeIndex)
-		# fontSizeSelect.currentTextChanged.connect(self.updateFontSizeText)
-
 
 	def closeRequestedTab(self, index):
 		if index==False: # hardcoded to be from menu item
